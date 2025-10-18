@@ -217,8 +217,20 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
           await saveModelToDB(modelId, modelBuffer);
         }
 
+        const modelFile = new File([modelBuffer], 'qwen3-vl-1b-merged-q4_k_m.gguf', {
+          type: 'application/octet-stream',
+        });
+
         setLoadingMessage('Initializing AI engine...');
         const engine = await webllm.CreateMLCEngine(modelId, {
+          model_list: [
+            {
+              local_id: modelId,
+              model_type: ModelType.LLM,
+              required_features: ['shader-f16'],
+              file: modelFile,
+            },
+          ],
           initProgressCallback: (progress) => {
             setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`);
           },
