@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   collection,
@@ -29,13 +29,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import {
-  ThumbsDown,
-  ThumbsUp,
-  Download
-} from 'lucide-react';
+import { ThumbsDown, ThumbsUp, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import clientsData from '@/lib/vls-clients.json';
 
 import {
@@ -50,6 +45,8 @@ import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionMatching from '@/components/quiz/QuestionMatching';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
+import { Progress } from '@/components/ui/progress';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 interface Quiz {
   questions: QuizQuestion[];
@@ -122,12 +119,12 @@ Do not include text outside a single valid JSON object.
 `;
 }
 
+// ----------------- Quiz Component -----------------
 function QuizComponent({ topic, limit, clientType, questionType }: QuizComponentProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
-  // ----------------- State -----------------
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing AI Engine...');
@@ -136,7 +133,6 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState<Record<string, 'good' | 'bad'>>({});
 
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -165,8 +161,47 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
 
         const prompt = getPrompt(client, topic, limit, questionType, previousQuestions);
 
-        // TODO: Load AI model and generate quiz
-        console.log('Prompt ready:', prompt);
+        // ----------------- Load AI model -----------------
+        setLoadingMessage('Downloading model...');
+        const modelId = 'Qwen3-VL-1B-GGUF';
+        const modelUrl =
+          'https://huggingface.co/Novaciano/Qwen3-VL-1B-Merged-Q4_K_M-GGUF/resolve/main/qwen3-vl-1b-merged-q4_k_m.gguf?download=true';
+
+        const response = await fetch(modelUrl);
+        if (!response.ok) throw new Error('Failed to download model');
+        const modelBuffer = await response.arrayBuffer();
+        const modelFile = new File([modelBuffer], 'qwen3-vl-1b-merged-q4_k_m.gguf', {
+          type: 'application/octet-stream'
+        });
+
+        setLoadingMessage('Initializing AI engine...');
+        const engine = await webllm.CreateMLCEngine(modelId, {
+          model_list: [
+            {
+              local_id: modelId,
+              model_type: ModelType.LLM,
+              required_features: ['shader-f16'],
+              file: modelFile
+            }
+          ],
+          initProgressCallback: progress => {
+            setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`);
+          }
+        });
+
+        setLoadingMessage('Generating questions...');
+        const reply = await engine.chat.completions.create({
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_gen_len: 2048,
+          response_format: { type: 'json_object' }
+        });
+
+        const jsonResponse = reply.choices[0].message.content;
+        if (!jsonResponse) throw new Error('AI did not return a response.');
+
+        const quizData = JSON.parse(jsonResponse);
+        setQuiz(quizData);
       } catch (err: any) {
         setError(err.message || 'Failed to generate quiz.');
         console.error(err);
@@ -178,6 +213,73 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
     fetchQuiz();
   }, [topic, limit, clientType, questionType, user, firestore]);
 
+  // ----------------- Answer selection -----------------
+  const handleAnswerSelect = (questionIndex: number, answer: Answer) => {
+    setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+  };
+
+  // ----------------- Feedback -----------------
+  const handleFeedback = async (questionText: string, rating: 'good' | 'bad') => {
+    if (!user || !firestore) return;
+    const feedbackKey = `${questionText}-${rating}`;
+    if (feedbackSent[feedbackKey]) return;
+    setFeedbackSent(prev => ({ ...prev, [feedbackKey]: rating }));
+
+    const feedbackCollection = collection(firestore, 'feedback');
+    const feedbackData: Omit<QuizFeedback, 'id'> = {
+      userId: user.uid,
+      question: questionText,
+      rating,
+      topic,
+      createdAt: serverTimestamp()
+    };
+    await addDocumentNonBlocking(feedbackCollection, feedbackData);
+  };
+
+  // ----------------- Render question -----------------
+  const renderQuestion = (question: QuizQuestion, index: number) => {
+    switch (question.type) {
+      case 'multiple_choice':
+        return (
+          <QuestionMultipleChoice
+            key={index}
+            question={question}
+            selected={answers[index]}
+            onSelect={ans => handleAnswerSelect(index, ans)}
+          />
+        );
+      case 'true_false':
+        return (
+          <QuestionTrueFalse
+            key={index}
+            question={question}
+            selected={answers[index]}
+            onSelect={ans => handleAnswerSelect(index, ans)}
+          />
+        );
+      case 'matching_pairs':
+        return (
+          <QuestionMatching
+            key={index}
+            question={question}
+            selected={answers[index]}
+            onSelect={ans => handleAnswerSelect(index, ans)}
+          />
+        );
+      case 'case_based':
+        return (
+          <QuestionCaseBased
+            key={index}
+            question={question}
+            selected={answers[index]}
+            onSelect={ans => handleAnswerSelect(index, ans)}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="p-4">
       {loading ? (
@@ -185,17 +287,36 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
           <Skeleton className="h-6 w-1/2" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-40 w-full" />
+          <p>{loadingMessage}</p>
         </div>
       ) : error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      ) : (
+      ) : quiz ? (
         <div>
-          {/* Quiz rendering will go here */}
-          <p>Quiz loaded! Questions will appear here.</p>
+          <Progress value={((currentQuestionIndex + 1) / quiz.questions.length) * 100} />
+          {quiz.questions.map((q, idx) => renderQuestion(q, idx))}
+          <div className="mt-4 space-x-2">
+            <Button
+              onClick={() => setCurrentQuestionIndex(idx => Math.max(idx - 1, 0))}
+              disabled={currentQuestionIndex === 0}
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() =>
+                setCurrentQuestionIndex(idx => Math.min(idx + 1, quiz.questions.length - 1))
+              }
+              disabled={currentQuestionIndex === quiz.questions.length - 1}
+            >
+              Next
+            </Button>
+          </div>
         </div>
+      ) : (
+        <p>No quiz loaded.</p>
       )}
     </div>
   );
