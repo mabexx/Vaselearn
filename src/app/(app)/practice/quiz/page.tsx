@@ -145,7 +145,7 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
               {
                 "model_url": modelUrl,
                 "local_id": modelId,
-                "model_type": "llm",
+                "model_type": ModelType.LLM,
                 "required_features": ["shader-f16"],
               }
             ]
