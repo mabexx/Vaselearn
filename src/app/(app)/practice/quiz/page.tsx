@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, Suspense, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   collection,
   doc,
@@ -13,73 +13,23 @@ import {
   where,
 } from 'firebase/firestore';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-
 import * as webllm from '@mlc-ai/web-llm';
 import { ModelType } from '@mlc-ai/web-llm';
-
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import {
-  ThumbsDown,
-  ThumbsUp,
-  Sparkles,
-  CheckCircle,
-  XCircle,
-  Download,
-  FileText,
-  LayoutDashboard,
-  RefreshCw,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import {
-  PracticeSession,
-  QuizFeedback,
-  QuizQuestion,
-  Answer,
-  VLSClient,
-} from '@/lib/types';
-import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
-import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
-import QuestionMatching from '@/components/quiz/QuestionMatching';
-import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
-import { Progress } from '@/components/ui/progress';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
 import clientsData from '@/lib/vls-clients.json';
+import { QuizQuestion, Answer, VLSClient, PracticeSession, QuizFeedback } from '@/lib/types';
 
-export interface Quiz {
-  questions: QuizQuestion[];
-}
-
-interface QuizComponentProps {
-  topic: string;
-  limit: number;
-  clientType: string;
-  questionType: string;
-}
-
-const DB_NAME = 'VaseLearnModelCache';
+const DB_NAME = 'webllm_models';
 const STORE_NAME = 'models';
 
-async function saveModelToDB(modelId: string, buffer: ArrayBuffer): Promise<void> {
+// --- IndexedDB helpers
+async function saveModelToDB(modelId: string, buffer: ArrayBuffer) {
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+
   return new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(buffer, modelId);
@@ -94,6 +44,7 @@ async function loadModelFromDB(modelId: string): Promise<ArrayBuffer | null> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const getRequest = tx.objectStore(STORE_NAME).get(modelId);
@@ -102,6 +53,7 @@ async function loadModelFromDB(modelId: string): Promise<ArrayBuffer | null> {
   });
 }
 
+// --- Prompt generator
 function getPrompt(
   client: VLSClient,
   topic: string,
@@ -112,56 +64,36 @@ function getPrompt(
   const questionTypeInstruction =
     questionType && questionType !== 'mixed'
       ? `The question "type" must be exactly "${questionType}". Do not use any other type.`
-      : `The question "type" should be varied and selected from the following list: [${client.question_generation.style.join(
+      : `The question "type" should be varied and selected from: [${client.question_generation.style.join(
           ', '
-        )}]. Do not use types not in this list.`;
+        )}]`;
 
   const historyInstruction =
-    previousQuestions && previousQuestions.length > 0
-      ? `You MUST NOT repeat any of the following questions that have been asked before:\n${previousQuestions
-          .map((q) => `- ${q}`)
-          .join('\n')}`
+    previousQuestions.length > 0
+      ? `Do NOT repeat any of the following questions:\n${previousQuestions.map((q) => `- ${q}`).join('\n')}`
       : 'This is the first quiz on this topic.';
 
   return `
-${client.instruction.system_prompt}
-You are generating a quiz for the topic "${topic}".
-Context: ${client.instruction.context}
-The tone should be: ${client.instruction.tone}.
-
-Generate a JSON object for a quiz with exactly ${numQuestions} questions.
-${questionTypeInstruction}
-
-Crucially, you must generate NEW questions that are different from the user's history.
-${historyInstruction}
-
-The JSON output must be an object with a "questions" key, which is an array of question objects.
-Each question object must have a "type" property and other properties that match its type, according to these schemas:
-
-1. "type": "multiple_choice"
-   - "question": string
-   - "options": string[] (array of 4 strings)
-   - "answer": string (the correct option text)
-
-2. "type": "true_false"
-   - "question": string
-   - "answer": boolean (true or false)
-
-3. "type": "matching_pairs"
-   - "question": string (e.g., "Match the concepts to their definitions.")
-   - "pairs": Array of objects, where each object has a "prompt" and a "match". Generate 4 pairs.
-   - "answer": array of correct matches
-
-4. "type": "case_based"
-   - "question": string (scenario or case study)
-   - "prompt": string
-   - "answer": string (detailed answer)
-
-Output must be valid JSON only.
-`;
+    ${client.instruction.system_prompt}
+    Generate a JSON quiz for topic "${topic}" with ${numQuestions} questions.
+    ${questionTypeInstruction}
+    ${historyInstruction}
+    Output JSON must have "questions": [{type:..., question:..., answer:...}].
+  `;
 }
 
-function QuizComponent({ topic, limit, clientType, questionType }: QuizComponentProps) {
+interface Quiz {
+  questions: QuizQuestion[];
+}
+
+interface QuizComponentProps {
+  topic: string;
+  limit: number;
+  clientType: string;
+  questionType: string;
+}
+
+export default function QuizComponent({ topic, limit, clientType, questionType }: QuizComponentProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -186,22 +118,24 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
       setError(null);
 
       try {
+        // --- Fetch previous questions
         setLoadingMessage('Fetching your learning history...');
         const sessionsCollection = collection(firestore, 'users', user.uid, 'practiceSessions');
-        const q = query(sessionsCollection, where('topic', '==', topic));
-        const querySnapshot = await getDocs(q);
+        const qSnap = await getDocs(query(sessionsCollection, where('topic', '==', topic)));
         const previousQuestions: string[] = [];
-        querySnapshot.forEach((doc) => {
+        qSnap.forEach((doc) => {
           const session = doc.data() as PracticeSession;
           session.questions.forEach((q) => previousQuestions.push(q.question));
         });
 
+        // --- Get client config
         const clients: VLSClient[] = clientsData.clients;
         const client = clients.find((c) => c.client_type === clientType);
-        if (!client) throw new Error('Invalid client profile specified.');
+        if (!client) throw new Error('Invalid client profile.');
 
         const prompt = getPrompt(client, topic, limit, questionType, previousQuestions);
 
+        // --- Model setup
         const modelId = 'Qwen3-VL-1B-GGUF';
         const modelUrl =
           'https://huggingface.co/Novaciano/Qwen3-VL-1B-Merged-Q4_K_M-GGUF/resolve/main/qwen3-vl-1b-merged-q4_k_m.gguf?download=true';
@@ -210,30 +144,22 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
         let modelBuffer = await loadModelFromDB(modelId);
 
         if (!modelBuffer) {
-          setLoadingMessage('Downloading AI model...');
+          setLoadingMessage('Downloading model...');
           const response = await fetch(modelUrl);
-          if (!response.ok) throw new Error('Failed to download model');
+          if (!response.ok) throw new Error('Failed to download model.');
           modelBuffer = await response.arrayBuffer();
           await saveModelToDB(modelId, modelBuffer);
+          setLoadingMessage('Model cached locally.');
+        } else {
+          setLoadingMessage('Using cached model...');
         }
 
-        const modelFile = new File([modelBuffer], 'qwen3-vl-1b-merged-q4_k_m.gguf', {
-          type: 'application/octet-stream',
-        });
+        const modelFile = new File([modelBuffer], 'qwen3-vl-1b-merged-q4_k_m.gguf', { type: 'application/octet-stream' });
 
         setLoadingMessage('Initializing AI engine...');
         const engine = await webllm.CreateMLCEngine(modelId, {
-          model_list: [
-            {
-              local_id: modelId,
-              model_type: ModelType.LLM,
-              required_features: ['shader-f16'],
-              file: modelFile,
-            },
-          ],
-          initProgressCallback: (progress) => {
-            setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`);
-          },
+          model_list: [{ local_id: modelId, model_type: ModelType.LLM, required_features: ['shader-f16'], file: modelFile }],
+          initProgressCallback: (progress) => setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`),
         });
 
         setLoadingMessage('Generating new questions...');
@@ -244,31 +170,29 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
           response_format: { type: 'json_object' },
         });
 
-        const jsonResponse = reply.choices[0].message.content;
-        if (!jsonResponse) throw new Error('No response from AI model.');
-        const quizData = JSON.parse(jsonResponse);
-        setQuiz(quizData);
+        const jsonResponse = reply.choices?.[0]?.message?.content;
+        if (!jsonResponse) throw new Error('AI did not return a response.');
+        setQuiz(JSON.parse(jsonResponse));
       } catch (err: any) {
         console.error(err);
-        setError(
-          'Failed to generate the quiz. AI may be busy or your browser may not be supported.'
-        );
+        setError('Failed to generate quiz. Try again later.');
       } finally {
         setLoading(false);
       }
     };
+
     fetchQuiz();
   }, [topic, limit, clientType, questionType, user, firestore]);
 
-  const handleAnswerSelect = (questionIndex: number, answer: Answer) => {
-    setAnswers((prev) => ({ ...prev, [questionIndex]: answer }));
+  const handleAnswerSelect = (index: number, answer: Answer) => {
+    setAnswers((prev) => ({ ...prev, [index]: answer }));
   };
 
   const handleFeedback = async (questionText: string, rating: 'good' | 'bad') => {
     if (!user || !firestore) return;
-    const feedbackKey = `${questionText}-${rating}`;
-    if (feedbackSent[feedbackKey]) return;
-    setFeedbackSent((prev) => ({ ...prev, [feedbackKey]: rating }));
+    const key = `${questionText}-${rating}`;
+    if (feedbackSent[key]) return;
+    setFeedbackSent((prev) => ({ ...prev, [key]: rating }));
 
     const feedbackCollection = collection(firestore, 'feedback');
     const feedbackData: Omit<QuizFeedback, 'id'> = {
@@ -281,226 +205,111 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
     await addDocumentNonBlocking(feedbackCollection, feedbackData);
   };
 
-  const isAnswerCorrect = (question: QuizQuestion, userAnswer: Answer): boolean => {
-    if (userAnswer === undefined || userAnswer === null) return false;
-
-    switch (question.type) {
-      case 'multiple_choice':
-      case 'true_false':
-        return userAnswer === question.answer;
-      case 'matching_pairs':
-        if (!Array.isArray(userAnswer) || !Array.isArray(question.answer)) return false;
-        if (userAnswer.length !== question.answer.length) return false;
-        return userAnswer.every((val, idx) => val === question.answer[idx]);
-      case 'case_based':
-        return true;
-      default:
-        return false;
+  const isAnswerCorrect = (question: QuizQuestion, userAnswer: Answer) => {
+    if (userAnswer == null) return false;
+    if (question.type === 'multiple_choice' || question.type === 'true_false') return userAnswer === question.answer;
+    if (question.type === 'matching_pairs') {
+      if (!Array.isArray(userAnswer) || !Array.isArray(question.answer)) return false;
+      return userAnswer.length === question.answer.length && userAnswer.every((v, i) => v === question.answer[i]);
     }
+if (question.type === 'case_based') return true; // Case-based may need manual evaluation
+    if (question.type === 'decision_tree') return true; // Decision tree might be scenario-based
+    return false;
   };
 
   const handleSubmit = async () => {
     if (!quiz || !user || !firestore) return;
+    setSubmitted(true);
+
+    // Calculate score
+    let totalScore = 0;
+    quiz.questions.forEach((q, i) => {
+      if (isAnswerCorrect(q, answers[i])) totalScore++;
+    });
+    setScore(totalScore);
+
+    // Save session to Firestore
     setIsSaving(true);
-    let newScore = 0;
-    const answeredQuestions = [];
-
-    for (let i = 0; i < quiz.questions.length; i++) {
-      const question = quiz.questions[i];
-      const userAnswer = answers[i];
-      const isCorrect =
-        question.type === 'case_based' ? true : isAnswerCorrect(question, userAnswer);
-      if (isCorrect) newScore++;
-      answeredQuestions.push({
-        question: question.question,
-        userAnswer: userAnswer !== undefined ? JSON.stringify(userAnswer) : 'No Answer',
-        correctAnswer: JSON.stringify(question.answer),
-        isCorrect,
-        type: question.type,
-      });
-    }
-
-    setScore(newScore);
-
     try {
-      const practiceSessionData: Omit<PracticeSession, 'id'> = {
+      const sessionsCollection = collection(firestore, 'users', user.uid, 'practiceSessions');
+      const sessionData: Omit<PracticeSession, 'id'> = {
         topic,
-        score: newScore,
-        totalQuestions: quiz.questions.length,
-        questions: answeredQuestions,
-        userId: user.uid,
+        questions: quiz.questions.map((q, i) => ({
+          question: q.question,
+          type: q.type,
+          userAnswer: answers[i] ?? null,
+          correctAnswer: q.answer,
+        })),
+        score: totalScore,
         createdAt: serverTimestamp(),
       };
-      const sessionsCollection = collection(firestore, 'users', user.uid, 'practiceSessions');
-      const sessionDocRef = await addDoc(sessionsCollection, practiceSessionData);
-
-      const mistakesToSave = answeredQuestions.filter(
-        (q) => !q.isCorrect && q.type !== 'case_based'
-      );
-      if (mistakesToSave.length > 0) {
-        const batch = writeBatch(firestore);
-        const mistakesCollectionRef = collection(firestore, 'users', user.uid, 'mistakes');
-
-        mistakesToSave.forEach((mistake) => {
-          const mistakeDoc = doc(mistakesCollectionRef);
-          batch.set(mistakeDoc, {
-            question: mistake.question,
-            userAnswer: mistake.userAnswer,
-            correctAnswer: mistake.correctAnswer,
-            topic,
-            userId: user.uid,
-            createdAt: serverTimestamp(),
-            practiceSessionId: sessionDocRef.id,
-          });
-        });
-        await batch.commit();
-      }
-
-      setSubmitted(true);
+      await addDoc(sessionsCollection, sessionData);
     } catch (err) {
-      console.error('Error saving session:', err);
-      setError('Failed to save your quiz results.');
+      console.error('Failed to save session', err);
     } finally {
       setIsSaving(false);
     }
+
+    // Scroll to results
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <Sparkles className="w-12 h-12 animate-pulse mb-4" />
-        <p className="text-lg font-medium">{loadingMessage}</p>
-        <Skeleton className="w-2/3 h-8 mt-4" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <XCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (!quiz) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p>Loading quiz...</p>
-      </div>
-    );
-  }
+  if (loading) return <div>{loadingMessage}</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
+  if (!quiz) return <div>No quiz available.</div>;
 
   return (
-    <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Quiz: {topic}</CardTitle>
-          <CardDescription>
-            Question {currentQuestionIndex + 1} of {quiz.questions.length}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!submitted ? (
-            <>
-              <Progress value={((currentQuestionIndex + 1) / quiz.questions.length) * 100} />
-              {quiz.questions.map((q, i) => (
-                <div key={i} className={cn('mt-6', i !== currentQuestionIndex && 'hidden')}>
-                  {q.type === 'multiple_choice' && (
-                    <QuestionMultipleChoice
-                      question={q}
-                      onAnswerSelect={(answer) => handleAnswerSelect(i, answer)}
-                      selectedAnswer={answers[i]}
-                    />
-                  )}
-                  {q.type === 'true_false' && (
-                    <QuestionTrueFalse
-                      question={q}
-                      onAnswerSelect={(answer) => handleAnswerSelect(i, answer)}
-                      selectedAnswer={answers[i]}
-                    />
-                  )}
-                  {q.type === 'matching_pairs' && (
-                    <QuestionMatching
-                      question={q}
-                      onAnswerSelect={(answer) => handleAnswerSelect(i, answer)}
-                      selectedAnswer={answers[i]}
-                    />
-                  )}
-                  {q.type === 'case_based' && (
-                    <QuestionCaseBased
-                      question={q}
-                      onAnswerSelect={(answer) => handleAnswerSelect(i, answer)}
-                      selectedAnswer={answers[i]}
-                    />
-                  )}
-                </div>
-              ))}
-            </>
-          ) : (
-            <div ref={resultsRef} className="space-y-4">
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertTitle>Quiz Complete!</AlertTitle>
-                <AlertDescription>
-                  You scored {score} out of {quiz.questions.length}
-                </AlertDescription>
-              </Alert>
+    <div className="quiz-component space-y-6">
+      {quiz.questions.map((q, idx) => (
+        <div key={idx} className="question-card p-4 border rounded">
+          <p className="font-semibold">{idx + 1}. {q.question}</p>
+          {(q.type === 'multiple_choice' || q.type === 'true_false') && q.options?.map((opt, i) => (
+            <button
+              key={i}
+              className={`block w-full my-1 p-2 border rounded ${answers[idx] === opt ? 'bg-blue-200' : ''}`}
+              onClick={() => handleAnswerSelect(idx, opt)}
+              disabled={submitted}
+            >
+              {opt}
+            </button>
+          ))}
+          {q.type === 'matching_pairs' && (
+            <p>Matching pairs type question – select or drag answers as implemented.</p>
+          )}
+          {submitted && (
+            <p className={`mt-2 font-medium ${isAnswerCorrect(q, answers[idx]) ? 'text-green-600' : 'text-red-600'}`}>
+              Correct answer: {Array.isArray(q.answer) ? q.answer.join(', ') : q.answer}
+            </p>
+          )}
+          {submitted && (
+            <div className="feedback mt-2">
+              <span>Was this question good? </span>
+              <button onClick={() => handleFeedback(q.question, 'good')} disabled={feedbackSent[`${q.question}-good`]}>👍</button>
+              <button onClick={() => handleFeedback(q.question, 'bad')} disabled={feedbackSent[`${q.question}-bad`]}>👎</button>
             </div>
           )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          {!submitted ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
-                disabled={currentQuestionIndex === 0}
-              >
-                Previous
-              </Button>
-              {currentQuestionIndex === quiz.questions.length - 1 ? (
-                <Button onClick={handleSubmit} disabled={isSaving}>
-                  {isSaving ? 'Submitting...' : 'Submit Quiz'}
-                </Button>
-              ) : (
-                <Button
-                  onClick={() =>
-                    setCurrentQuestionIndex(
-                      Math.min(quiz.questions.length - 1, currentQuestionIndex + 1)
-                    )
-                  }
-                >
-                  Next
-                </Button>
-              )}
-            </>
-          ) : (
-            <Button onClick={() => router.push('/practice')}>Back to Dashboard</Button>
-          )}
-        </CardFooter>
-      </Card>
+        </div>
+      ))}
+
+      {!submitted && (
+        <button
+          className="submit-btn px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={handleSubmit}
+        >
+          Submit Quiz
+        </button>
+      )}
+
+      {submitted && (
+        <div ref={resultsRef} className="results p-4 border rounded mt-4 bg-gray-100">
+          <h3 className="font-bold text-lg">Results</h3>
+          <p>
+            Score: {score} / {quiz.questions.length} (
+            {((score / quiz.questions.length) * 100).toFixed(1)}%)
+          </p>
+          {isSaving && <p>Saving session...</p>}
+        </div>
+      )}
     </div>
-  );
-}
-
-export default function QuizPage() {
-  const searchParams = useSearchParams();
-  const topic = searchParams.get('topic') || 'General Knowledge';
-  const limit = parseInt(searchParams.get('limit') || '5');
-  const clientType = searchParams.get('clientType') || 'default';
-  const questionType = searchParams.get('questionType') || 'mixed';
-
-  return (
-    <Suspense fallback={<Skeleton className="w-full h-96" />}>
-      <QuizComponent
-        topic={topic}
-        limit={limit}
-        clientType={clientType}
-        questionType={questionType}
-      />
-    </Suspense>
   );
 }
