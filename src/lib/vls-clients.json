@@ -1,0 +1,494 @@
+
+{
+  "clients": [
+    {
+      "client_type": "VET_VTC",
+      "metadata": {
+        "priority": "highest",
+        "sector": "Audited Workforce Training",
+        "description": "Centers providing accredited vocational and technical education with outcome-based assessments."
+      },
+      "instruction": {
+        "system_prompt": "Generate competency-based learning questions tied to workplace scenarios.",
+        "context": "Focus on practical skill validation, certification standards, and industry-relevant examples.",
+        "tone": "formal and instructional",
+        "difficulty_levels": [
+          "beginner",
+          "intermediate",
+          "advanced"
+        ]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Occupational Safety",
+            "subtopics": [
+              "Fire Safety",
+              "First Aid",
+              "Workplace Ergonomics"
+            ]
+          },
+          {
+            "title": "Technical Literacy",
+            "subtopics": [
+              "Basic Tool Use",
+              "Machine Operation",
+              "Digital Skills"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": [
+          "multiple_choice",
+          "case_based"
+        ],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "Job_Center",
+      "metadata": {
+        "priority": "high",
+        "sector": "Audited Workforce Training",
+        "description": "Agencies responsible for employability programs and job readiness training."
+      },
+      "instruction": {
+        "system_prompt": "Generate employability and career-readiness questions.",
+        "context": "Focus on CV building, communication skills, and interview preparation.",
+        "tone": "motivational and practical",
+        "difficulty_levels": [
+          "basic",
+          "intermediate"
+        ]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Job Readiness",
+            "subtopics": [
+              "Resume Writing",
+              "Interview Skills",
+              "Teamwork"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": [
+          "multiple_choice",
+          "open_ended"
+        ],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "Refugee_Integration_NGO",
+      "metadata": {
+        "priority": "medium",
+        "sector": "Social Integration",
+        "description": "Organizations helping refugees and migrants integrate into workforce and society."
+      },
+      "instruction": {
+        "system_prompt": "Generate language and cultural adaptation questions.",
+        "context": "Focus on workplace communication, rights awareness, and local norms.",
+        "tone": "empathetic and accessible",
+        "difficulty_levels": [
+          "beginner",
+          "intermediate"
+        ]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Workplace Communication",
+            "subtopics": [
+              "Polite Language",
+              "Reporting Issues",
+              "Asking for Help"
+            ]
+          },
+          {
+            "title": "Cultural Awareness",
+            "subtopics": [
+              "Local Customs",
+              "Workplace Hierarchies"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": [
+          "multiple_choice",
+          "open_ended"
+        ],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "Public_Library",
+      "metadata": {
+        "priority": "strategic",
+        "sector": "Public Access & Community Infrastructure",
+        "description": "Libraries offering lifelong learning and digital literacy programs."
+      },
+      "instruction": {
+        "system_prompt": "Generate digital literacy and general education questions.",
+        "context": "Focus on computer basics, online safety, and information literacy.",
+        "tone": "friendly and educational",
+        "difficulty_levels": [
+          "beginner",
+          "intermediate"
+        ]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Digital Literacy",
+            "subtopics": [
+              "Basic Computer Skills",
+              "Email Use",
+              "Online Safety"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": [
+          "multiple_choice",
+          "true_false"
+        ],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "Adult_Education_Center",
+      "metadata": {
+        "priority": "medium",
+        "sector": "Language & Advocacy",
+        "description": "Adult learning centers offering basic skills and lifelong learning courses."
+      },
+      "instruction": {
+        "system_prompt": "Generate language learning and civic engagement questions.",
+        "context": "Include local governance, workplace rights, and communication exercises.",
+        "tone": "inclusive and supportive",
+        "difficulty_levels": [
+          "beginner",
+          "intermediate"
+        ]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Language Practice",
+            "subtopics": [
+              "Daily Communication",
+              "Grammar Basics",
+              "Listening Exercises"
+            ]
+          },
+          {
+            "title": "Civic Education",
+            "subtopics": [
+              "Local Government",
+              "Community Participation"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": [
+          "fill_in_the_blank",
+          "multiple_choice"
+        ],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "Private_Workforce_Firm",
+      "metadata": {
+        "priority": "high",
+        "sector": "Audited Workforce Training",
+        "description": "Private firms delivering large-scale upskilling and corporate workforce development programs."
+      },
+      "instruction": {
+        "system_prompt": "Generate industry-aligned skill assessment and competency-building questions.",
+        "context": "Focus on performance improvement, role-based competencies, and measurable skill growth.",
+        "tone": "corporate and analytical",
+        "difficulty_levels": ["intermediate", "advanced"]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Professional Skills",
+            "subtopics": [
+              "Leadership",
+              "Strategic Thinking",
+              "Project Management",
+              "Time Management",
+              "Communication Effectiveness",
+              "Decision Making",
+              "Problem Solving",
+              "Client Relations",
+              "Negotiation",
+              "Business Writing"
+            ]
+          },
+          {
+            "title": "Technical Competencies",
+            "subtopics": [
+              "Data Literacy",
+              "Microsoft Office Mastery",
+              "Spreadsheet Analysis",
+              "Report Automation",
+              "CRM Systems",
+              "Cybersecurity Awareness",
+              "Process Improvement",
+              "Software Troubleshooting",
+              "Workflow Optimization",
+              "Quality Assurance"
+            ]
+          },
+          {
+            "title": "Corporate Compliance",
+            "subtopics": [
+              "Anti-Corruption Policies",
+              "Diversity and Inclusion",
+              "Workplace Harassment",
+              "Data Protection",
+              "Code of Conduct",
+              "Intellectual Property",
+              "Health & Safety Protocols",
+              "Environmental Standards",
+              "Reporting Mechanisms",
+              "Ethical Decision-Making"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": ["case_based", "multiple_choice"],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "Community_IT_Center",
+      "metadata": {
+        "priority": "strategic",
+        "sector": "Public Access & Community Infrastructure",
+        "description": "Community hubs providing open computer access, digital training, and technology literacy to underserved populations."
+      },
+      "instruction": {
+        "system_prompt": "Generate questions that test digital inclusion, IT skills, and tech problem-solving.",
+        "context": "Focus on basic computer operations, internet navigation, and user empowerment in digital contexts.",
+        "tone": "accessible and empowering",
+        "difficulty_levels": ["beginner", "intermediate"]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Basic Computer Use",
+            "subtopics": [
+              "Hardware Components",
+              "Operating Systems",
+              "File Management",
+              "Keyboard Shortcuts",
+              "Installing Software",
+              "System Settings",
+              "Connecting Devices",
+              "Troubleshooting Basics",
+              "Cloud Storage Use",
+              "Printing Documents"
+            ]
+          },
+          {
+            "title": "Internet and Online Tools",
+            "subtopics": [
+              "Web Browsing",
+              "Search Techniques",
+              "Email Management",
+              "Online Collaboration Tools",
+              "Video Conferencing",
+              "Social Media Basics",
+              "Online Job Applications",
+              "Internet Safety",
+              "Digital Etiquette",
+              "Online Research"
+            ]
+          },
+          {
+            "title": "Digital Creativity",
+            "subtopics": [
+              "Graphic Design Tools",
+              "Presentation Software",
+              "Video Editing Basics",
+              "Sound Editing",
+              "Content Uploading",
+              "Copyright Awareness",
+              "Creating Online Portfolios",
+              "Using Templates",
+              "Basic Animation",
+              "Document Sharing"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": ["multiple_choice", "interactive_task"],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "Municipal_Social_Welfare_Department",
+      "metadata": {
+        "priority": "strategic",
+        "sector": "Public Service & Welfare",
+        "description": "Local government departments managing welfare programs, social assistance, and citizen engagement."
+      },
+      "instruction": {
+        "system_prompt": "Generate questions that assess understanding of social welfare systems, citizen rights, and ethical case management.",
+        "context": "Include public policy knowledge, welfare eligibility, and communication with vulnerable populations.",
+        "tone": "formal and civic-minded",
+        "difficulty_levels": ["intermediate", "advanced"]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Social Policy Basics",
+            "subtopics": [
+              "Public Assistance Programs",
+              "Unemployment Benefits",
+              "Housing Support",
+              "Child Welfare Services",
+              "Elderly Care Systems",
+              "Healthcare Access",
+              "Disability Support",
+              "Poverty Reduction Strategies",
+              "Social Inclusion",
+              "Income Redistribution"
+            ]
+          },
+          {
+            "title": "Citizen Interaction",
+            "subtopics": [
+              "Client Communication",
+              "Active Listening",
+              "Empathy in Service Delivery",
+              "Conflict Mediation",
+              "Confidentiality",
+              "Cultural Sensitivity",
+              "Interviewing Techniques",
+              "Case Reporting",
+              "Complaint Resolution",
+              "Community Outreach"
+            ]
+          },
+          {
+            "title": "Public Ethics and Law",
+            "subtopics": [
+              "Data Privacy in Public Records",
+              "Transparency Principles",
+              "Corruption Prevention",
+              "Equal Access to Services",
+              "Anti-Discrimination Laws",
+              "Documentation Standards",
+              "Ethical Case Handling",
+              "Whistleblower Protection",
+              "Accountability Frameworks",
+              "Crisis Management"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": ["case_based", "open_ended"],
+        "output_format": "json",
+        "examples": []
+      }
+    },
+    {
+      "client_type": "LRL_Advocacy_Group",
+      "metadata": {
+        "priority": "medium",
+        "sector": "Language & Advocacy",
+        "description": "Organizations promoting preservation, teaching, and use of lesser-resourced or minority languages."
+      },
+      "instruction": {
+        "system_prompt": "Generate language revitalization and cultural heritage questions.",
+        "context": "Focus on local language learning, grammar, cultural context, and linguistic identity.",
+        "tone": "cultural and supportive",
+        "difficulty_levels": ["beginner", "intermediate", "advanced"]
+      },
+      "topics": {
+        "hardcoded": [
+          {
+            "title": "Language Structure",
+            "subtopics": [
+              "Phonetics and Pronunciation",
+              "Grammar Rules",
+              "Sentence Building",
+              "Tenses and Conjugations",
+              "Noun Cases",
+              "Prepositions Usage",
+              "Word Formation",
+              "Common Phrases",
+              "Adjectives and Adverbs",
+              "Idiomatic Expressions"
+            ]
+          },
+          {
+            "title": "Cultural Heritage",
+            "subtopics": [
+              "Local Folklore",
+              "Traditional Songs",
+              "Proverbs and Sayings",
+              "Oral Storytelling",
+              "Regional History",
+              "Festivals and Customs",
+              "Traditional Attire",
+              "Community Symbols",
+              "Historical Figures",
+              "Cultural Identity"
+            ]
+          },
+          {
+            "title": "Community Revitalization",
+            "subtopics": [
+              "Language Clubs",
+              "Youth Involvement",
+              "Digital Documentation",
+              "Community Events",
+              "Educational Materials",
+              "Intergenerational Learning",
+              "Local Media Use",
+              "Language Apps",
+              "Public Campaigns",
+              "Teacher Training"
+            ]
+          }
+        ],
+        "custom": []
+      },
+      "question_generation": {
+        "style": ["fill_in_the_blank", "multiple_choice", "story_based"],
+        "output_format": "json",
+        "examples": []
+      }
+    }
+  ]
+}

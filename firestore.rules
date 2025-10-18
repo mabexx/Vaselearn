@@ -1,0 +1,137 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for most data, with exceptions for public feedback.
+ *
+ * Data Structure:
+ * - /users/{userId}: User profiles, owned by the user.
+ * - /users/{userId}/notes/{noteId}: Notes created by the user.
+ * - /users/{userId}/practiceSessions/{sessionId}: Practice sessions completed by the user.
+ * - /users/{userId}/mistakes/{mistakeId}: Mistakes made by the user in practice sessions.
+ * - /users/{userId}/customGoals/{goalId}: Custom goals defined by the user.
+ * - /feedback/{feedbackId}: Public feedback on AI-generated questions.
+ *
+ * Key Security Decisions:
+ * - User data (profiles, notes, practice sessions, mistakes, customGoals) is strictly controlled by the owning user.
+ * - Users can only access their own data and cannot list other users' data.
+ * - Feedback is publicly readable, but write access is restricted to authenticated users and requires a matching userId.
+ * - Listing other user's data is disallowed.
+ *
+ * Denormalization for Authorization:
+ * - The 'userId' field is present in all user-owned documents to simplify ownership checks.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' can create their own profile.
+     * @allow (get) User with ID 'user123' can read their own profile.
+     * @deny (get) User with ID 'user456' cannot read user 'user123's profile.
+     * @principle Enforces document ownership and prevents unauthorized profile access.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to user notes.
+     * @path /users/{userId}/notes/{noteId}
+     * @allow (create) User with ID 'user123' can create a note under their profile.
+     * @allow (get) User with ID 'user123' can read a note under their profile.
+     * @deny (get) User with ID 'user456' cannot read notes under user 'user123's profile.
+     * @principle Enforces document ownership for notes.
+     */
+    match /users/{userId}/notes/{noteId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to user practice sessions.
+     * @path /users/{userId}/practiceSessions/{sessionId}
+     * @allow (create) User with ID 'user123' can create a practice session under their profile.
+     * @allow (get) User with ID 'user123' can read a practice session under their profile.
+     * @deny (get) User with ID 'user456' cannot read practice sessions under user 'user123's profile.
+     * @principle Enforces document ownership for practice sessions.
+     */
+    match /users/{userId}/practiceSessions/{sessionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to user mistakes.
+     * @path /users/{userId}/mistakes/{mistakeId}
+     * @allow (create) User with ID 'user123' can create a mistake under their profile.
+     * @allow (get) User with ID 'user123' can read a mistake under their profile.
+     * @deny (get) User with ID 'user456' cannot read mistakes under user 'user123's profile.
+     * @principle Enforces document ownership for mistakes.
+     */
+    match /users/{userId}/mistakes/{mistakeId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to user custom goals.
+     * @path /users/{userId}/customGoals/{goalId}
+     * @allow (create) User with ID 'user123' can create a custom goal under their profile.
+     * @allow (list) User with ID 'user123' can list custom goals under their profile.
+     * @allow (get) User with ID 'user123' can read a custom goal under their profile.
+     * @deny (get) User with ID 'user456' cannot read custom goals under user 'user123's profile.
+     * @principle Enforces document ownership for custom goals.
+     */
+    match /users/{userId}/customGoals/{goalId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to quiz feedback.
+     * @path /feedback/{feedbackId}
+     * @allow (get) Any user can read quiz feedback.
+     * @allow (list) Any user can list quiz feedback.
+     * @allow (create) Only authenticated users can create feedback, and the userId must match their auth.
+     * @deny (create) Unauthenticated users cannot create feedback.
+     * @deny (update) No updates allowed
+     * @principle Allows public read access to feedback while restricting write access to authenticated users.
+     */
+    match /feedback/{feedbackId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
