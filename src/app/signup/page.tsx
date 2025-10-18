@@ -57,12 +57,17 @@ export default function SignupPage() {
 
       // Create user profile document in Firestore
       const userProfileRef = doc(firestore, 'users', user.uid);
-      await setDocumentNonBlocking(userProfileRef, {
-        id: user.uid,
-        name: displayName,
-        email: user.email,
-        createdAt: serverTimestamp(),
-      });
+      const userProfileRef = doc(firestore, 'users', user.uid);
+      await setDocumentNonBlocking(
+        userProfileRef,
+        {
+          id: user.uid,
+          name: displayName,
+          email: user.email,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true } // ✅ Add this
+      );
 
       toast({
         title: 'Account Created',
