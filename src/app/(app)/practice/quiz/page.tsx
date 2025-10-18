@@ -136,7 +136,7 @@ function QuizComponent({ topic, limit, clientType, questionType }: QuizComponent
         const modelId = "Qwen3-VL-1B-GGUF";
         const modelUrl = "https://huggingface.co/Novaciano/Qwen3-VL-1B-Merged-Q4_K_M-GGUF/resolve/main/qwen3-vl-1b-merged-q4_k_m.gguf?download=true";
 
-        const engine = await webllm.CreateEngine(modelId, { 
+        const engine = await webllm.CreateMLCEngine(modelId, { 
           initProgressCallback: (progress) => {
               setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`);
           },
