@@ -121,7 +121,7 @@ const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
       ],
       temperature: 0.6,
     });
-    setAiResponse(reply.choices[0].message.content);
+    setAiResponse(reply.choices?.[0]?.message?.content ?? '');
     setLoadingMessage('');
   };
 
