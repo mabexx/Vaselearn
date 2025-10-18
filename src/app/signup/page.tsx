@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -28,6 +27,7 @@ export default function SignupPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -37,26 +37,28 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!agreedToTerms) {
-        toast({
-            title: 'Terms and Conditions',
-            description: 'You must agree to the Terms of Service and Privacy Policy to create an account.',
-            variant: 'destructive',
-        });
-        return;
+      toast({
+        title: 'Terms and Conditions',
+        description: 'You must agree to the Terms of Service and Privacy Policy to create an account.',
+        variant: 'destructive',
+      });
+      return;
     }
 
     setIsLoading(true);
+
     try {
+      // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const displayName = `${firstName} ${lastName}`.trim();
-      
+
       // Update Firebase Auth profile
       await updateProfile(user, { displayName });
 
-      // Create user profile document in Firestore
-      const userProfileRef = doc(firestore, 'users', user.uid);
+      // Create or merge Firestore user profile
       const userProfileRef = doc(firestore, 'users', user.uid);
       await setDocumentNonBlocking(
         userProfileRef,
@@ -66,7 +68,7 @@ export default function SignupPage() {
           email: user.email,
           createdAt: serverTimestamp(),
         },
-        { merge: true } // ✅ Add this
+        { merge: true } // merge ensures we don't overwrite existing fields
       );
 
       toast({
@@ -82,12 +84,13 @@ export default function SignupPage() {
         description = 'This email is already registered. Please login instead.';
       } else if (error.code === 'auth/weak-password') {
         description = 'The password is too weak. Please use at least 6 characters.';
-      } else {
+      } else if (error.message) {
         description = error.message;
       }
+
       toast({
         title: 'Signup Failed',
-        description: description,
+        description,
         variant: 'destructive',
       });
     } finally {
@@ -99,9 +102,9 @@ export default function SignupPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center">
-            <Logo className="h-10 w-10 mb-4 text-primary" />
-            <h1 className="text-3xl font-bold">Create Your StudyFlow Account</h1>
-            <p className="text-muted-foreground">Unlock a smarter way to learn.</p>
+          <Logo className="h-10 w-10 mb-4 text-primary" />
+          <h1 className="text-3xl font-bold">Create Your StudyFlow Account</h1>
+          <p className="text-muted-foreground">Unlock a smarter way to learn.</p>
         </div>
         <Card>
           <CardHeader>
@@ -160,20 +163,20 @@ export default function SignupPage() {
                 />
               </div>
               <div className="flex items-center space-x-2">
-                  <Checkbox 
-                      id="terms" 
-                      checked={agreedToTerms}
-                      onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-                      disabled={isLoading}
-                  />
-                  <label
-                      htmlFor="terms"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                      I agree to the 
-                      <Link href="/terms" className="underline text-primary" target="_blank"> Terms of Service</Link> and 
-                      <Link href="/privacy" className="underline text-primary" target="_blank"> Privacy Policy</Link>.
-                  </label>
+                <Checkbox 
+                  id="terms" 
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  I agree to the 
+                  <Link href="/terms" className="underline text-primary" target="_blank"> Terms of Service</Link> and 
+                  <Link href="/privacy" className="underline text-primary" target="_blank"> Privacy Policy</Link>.
+                </label>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading || !agreedToTerms}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
