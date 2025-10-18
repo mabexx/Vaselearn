@@ -63,34 +63,34 @@ export default function QuizComponentInner({
   }, []);
 
   // 🧠 Generate questions dynamically using LLM
-  const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
-    setLoadingMessage('Generating quiz questions...');
-    const prompt = `
-    Create ${limit} ${questionType} quiz questions about ${topic}.
-    Format each question as JSON with fields: id, question, options (if any), and answer.
-    Keep it concise and factual.
-    `;
+const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
+  setLoadingMessage('Generating quiz questions...');
+  const prompt = `
+  Create ${limit} ${questionType} quiz questions about ${topic}.
+  Format each question as JSON with fields: id, question, options (if any), and answer.
+  Keep it concise and factual.
+  `;
 
-    const reply = await engineInstance.chat.completions.create({
-      messages: [
-        { role: 'system', content: 'You are a helpful quiz generator AI.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-    });
+  const reply = await engineInstance.chat.completions.create({
+    messages: [
+      { role: 'system', content: 'You are a helpful quiz generator AI.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.7,
+  });
 
-    // Try to parse JSON if model returns it
-    try {
-      const content = reply.choices[0].message.content.trim();
-      const json = JSON.parse(content);
-      return json as Question[];
-    } catch {
-      console.warn('Failed to parse AI JSON, returning fallback questions.');
-      return [
-        { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
-      ];
-    }
-  };
+  try {
+    const content = reply?.choices?.[0]?.message?.content?.trim();
+    if (!content) throw new Error('Empty response from model');
+    const json = JSON.parse(content);
+    return json as Question[];
+  } catch (err) {
+    console.warn('Failed to parse AI JSON, returning fallback questions.', err);
+    return [
+      { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
+    ];
+  }
+};
 
   // 🎯 Handle answer submission
   const handleSubmit = () => {
