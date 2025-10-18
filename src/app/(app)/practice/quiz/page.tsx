@@ -12,8 +12,7 @@ import { QuizQuestion, Answer, PracticeSession, QuizFeedback, VLSClient } from '
 const DB_NAME = "mlc_models_db";
 const STORE_NAME = "models";
 
-// --- IndexedDB helpers
-async function saveModelToDB(modelId: string, buffer: ArrayBuffer): Promise<void> {
+async function saveModelToDB(modelId: string, buffer: ArrayBuffer) {
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
@@ -44,38 +43,24 @@ async function loadModelFromDB(modelId: string): Promise<ArrayBuffer | null> {
   });
 }
 
-// --- Prompt generation
 function getPrompt(client: VLSClient, topic: string, numQuestions: number, questionType: string, previousQuestions: string[]) {
   const questionTypeInstruction = questionType && questionType !== 'mixed'
-    ? `The question "type" must be exactly "${questionType}". Do not use any other type.`
-    : `The question "type" should be varied and selected from the following list: [${client.question_generation.style.join(', ')}]. Do not use types not in this list.`;
+    ? `The question "type" must be exactly "${questionType}".`
+    : `The question "type" should be varied: [${client.question_generation.style.join(', ')}].`;
 
   const historyInstruction = previousQuestions.length
-    ? `You MUST NOT repeat the following questions:\n${previousQuestions.map(q => `- ${q}`).join('\n')}`
+    ? `Do not repeat the following questions:\n${previousQuestions.map(q => `- ${q}`).join('\n')}`
     : "This is the first quiz on this topic.";
 
   return `
     ${client.instruction.system_prompt}
-    You are generating a quiz for the topic "${topic}".
-    Context: ${client.instruction.context}
-    Tone: ${client.instruction.tone}.
-
-    Generate a JSON object for a quiz with exactly ${numQuestions} questions.
+    Generate a JSON quiz for topic "${topic}" with ${numQuestions} questions.
     ${questionTypeInstruction}
     ${historyInstruction}
-
-    Output must be a valid JSON object with a "questions" array. Question schemas:
-
-    1. "multiple_choice": { "question": string, "options": string[4], "answer": string }
-    2. "true_false": { "question": string, "answer": boolean }
-    3. "matching_pairs": { "question": string, "pairs": [{prompt: string, match: string} x4], "answer": string[] }
-    4. "case_based": { "question": string, "prompt": string, "answer": string }
-
-    Output must be JSON only.
+    Output must be a valid JSON object with "questions" array.
   `;
 }
 
-// --- Component
 interface QuizComponentProps {
   topic: string;
   limit: number;
@@ -98,7 +83,6 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
   const [feedbackSent, setFeedbackSent] = useState<Record<string, 'good' | 'bad'>>({});
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // --- Fetch quiz
   useEffect(() => {
     if (!user || !firestore) return;
 
@@ -143,7 +127,7 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
 
         setLoadingMessage("Initializing AI engine...");
         const engine = await webllm.CreateMLCEngine(modelId, {
-          model_list: [{ local_id: modelId, model_type: ModelType.LLM, required_features: ["shader-f16"], file: modelFile }],
+          model: { local_id: modelId, model_type: ModelType.LLM, required_features: ["shader-f16"], file: modelFile },
           initProgressCallback: progress => setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`),
         });
 
@@ -157,8 +141,8 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
 
         const jsonResponse = reply.choices?.[0]?.message?.content;
         if (!jsonResponse) throw new Error("AI model did not return a response.");
-
         setQuiz(JSON.parse(jsonResponse));
+
       } catch (err: any) {
         console.error(err);
         setError("Failed to generate quiz. Please try again later.");
@@ -197,7 +181,7 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
     }
   };
 
- const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (!quiz || !user || !firestore) return;
 
     let calculatedScore = 0;
@@ -223,13 +207,10 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
       console.error(err);
     } finally {
       setIsSaving(false);
-      if (resultsRef.current) {
-        resultsRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
+      if (resultsRef.current) resultsRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  // --- Render
   if (loading) return <div>{loadingMessage}</div>;
   if (error) return <div className="text-red-500">{error}</div>;
   if (!quiz) return <div>No quiz available.</div>;
@@ -240,34 +221,18 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
       {quiz.questions.map((q, idx) => (
         <div key={idx} className="mb-6 p-4 border rounded">
           <p className="font-semibold">{idx + 1}. {q.question}</p>
-
-          {/* Multiple choice */}
+          {/* Render options based on type */}
           {q.type === 'multiple_choice' && q.options?.map((opt, i) => (
-            <button
-              key={i}
-              className={`block mt-2 p-2 border rounded ${answers[idx] === opt ? 'bg-blue-200' : ''}`}
-              onClick={() => handleAnswerSelect(idx, opt)}
-            >
-              {opt}
-            </button>
+            <button key={i} className={`block mt-2 p-2 border rounded ${answers[idx] === opt ? 'bg-blue-200' : ''}`}
+              onClick={() => handleAnswerSelect(idx, opt)}>{opt}</button>
           ))}
-
-          {/* True/False */}
           {q.type === 'true_false' && [true, false].map(val => (
-            <button
-              key={String(val)}
-              className={`block mt-2 p-2 border rounded ${answers[idx] === val ? 'bg-blue-200' : ''}`}
-              onClick={() => handleAnswerSelect(idx, val)}
-            >
-              {String(val)}
-            </button>
+            <button key={String(val)} className={`block mt-2 p-2 border rounded ${answers[idx] === val ? 'bg-blue-200' : ''}`}
+              onClick={() => handleAnswerSelect(idx, val)}>{String(val)}</button>
           ))}
-
-          {/* Matching pairs */}
           {q.type === 'matching_pairs' && q.pairs?.map((pair, i) => (
             <div key={i} className="mt-2">
-              <span>{pair.prompt}</span> - <input
-                type="text"
+              <span>{pair.prompt}</span> - <input type="text"
                 value={Array.isArray(answers[idx]) ? (answers[idx] as string[])[i] ?? '' : ''}
                 onChange={e => {
                   const newArr = Array.isArray(answers[idx]) ? [...(answers[idx] as string[])] : [];
@@ -278,16 +243,9 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
               />
             </div>
           ))}
-
-          {/* Case-based */}
           {q.type === 'case_based' && (
-            <textarea
-              className="w-full mt-2 p-2 border rounded"
-              value={answers[idx] || ''}
-              onChange={e => handleAnswerSelect(idx, e.target.value)}
-            />
+            <textarea className="w-full mt-2 p-2 border rounded" value={answers[idx] || ''} onChange={e => handleAnswerSelect(idx, e.target.value)} />
           )}
-
           {/* Feedback */}
           <div className="mt-2 flex gap-2">
             <button onClick={() => handleFeedback(q.question, 'good')} disabled={feedbackSent[`${q.question}-good`]} className="bg-green-200 p-1 rounded">👍</button>
@@ -295,16 +253,9 @@ export default function QuizComponent({ topic, limit, clientType, questionType }
           </div>
         </div>
       ))}
-
-      <button
-        onClick={handleSubmit}
-        disabled={isSaving}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
+      <button onClick={handleSubmit} disabled={isSaving} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
         {isSaving ? 'Saving...' : 'Submit Quiz'}
       </button>
-
-      {/* Results */}
       {score > 0 && (
         <div ref={resultsRef} className="mt-6 p-4 border rounded bg-gray-100">
           <h3 className="font-bold text-lg">Your Score: {score} / {quiz.questions.length}</h3>
