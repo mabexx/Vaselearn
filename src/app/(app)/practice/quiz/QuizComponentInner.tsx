@@ -12,7 +12,7 @@ import { QuizQuestion, Answer, PracticeSession, QuizFeedback, VLSClient } from '
 const DB_NAME = "mlc_models_db";
 const STORE_NAME = "models";
 
-async function saveModelToDB(modelId: string, buffer: ArrayBuffer) {
+async function saveModelToDB(modelId: string, buffer: ArrayBuffer): Promise<void> {
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
@@ -20,7 +20,7 @@ async function saveModelToDB(modelId: string, buffer: ArrayBuffer) {
     request.onerror = () => reject(request.error);
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     tx.objectStore(STORE_NAME).put(buffer, modelId);
     tx.oncomplete = () => resolve();
@@ -35,7 +35,7 @@ async function loadModelFromDB(modelId: string): Promise<ArrayBuffer | null> {
     request.onerror = () => reject(request.error);
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise<ArrayBuffer | null>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const getRequest = tx.objectStore(STORE_NAME).get(modelId);
     getRequest.onsuccess = () => resolve(getRequest.result ?? null);
@@ -261,4 +261,4 @@ export default function QuizComponentInner({ topic, limit, clientType, questionT
       )}
     </div>
   );
-      }
+}
