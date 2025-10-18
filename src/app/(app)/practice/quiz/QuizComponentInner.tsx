@@ -126,10 +126,9 @@ export default function QuizComponentInner({ topic, limit, clientType, questionT
         const modelFile = new File([modelBuffer], "model.gguf", { type: "application/octet-stream" });
 
         setLoadingMessage("Initializing AI engine...");
-        const engine = await webllm.CreateMLCEngine(modelId, {
-          model: { local_id: modelId, model_type: ModelType.LLM, required_features: ["shader-f16"], file: modelFile },
-          initProgressCallback: progress => setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`),
-        });
+        const engine = await webllm.CreateMLCEngine(modelFile, {
+  initProgressCallback: progress => setLoadingMessage(`Initializing AI model... ${Math.floor(progress.progress * 100)}%`),
+});
 
         setLoadingMessage("Generating quiz...");
         const reply = await engine.chat.completions.create({
