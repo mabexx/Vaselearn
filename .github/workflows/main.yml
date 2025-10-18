@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
+      # 1. Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -27,17 +27,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 4. Build the app
+      # 4. Set environment variables (optional)
+      - name: Set environment variables
+        run: echo "NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}" >> $GITHUB_ENV
+      - name: Set Hugging Face model URL
+        run: echo "NEXT_PUBLIC_HF_MODEL_URL=${{ secrets.NEXT_PUBLIC_HF_MODEL_URL }}" >> $GITHUB_ENV
+
+      # 5. Build the app
       - name: Build Next.js
         run: npm run build
 
-      # 5. (Optional) Run tests
+      # 6. (Optional) Run tests
       - name: Run tests
         run: npm run test || echo "No tests configured"
-
-      # 6. (Optional) Upload artifacts
-      - name: Upload build
-        uses: actions/upload-artifact@v3
-        with:
-          name: nextjs-build
-          path: .next
