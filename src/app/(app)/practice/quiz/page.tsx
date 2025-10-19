@@ -1,11 +1,10 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import QuizComponentInner from './QuizComponentInner';
 
-export const dynamic = 'force-dynamic'; // ✅ correct for your version
-
-export default function QuizPage() {
+function QuizContent() {
   const searchParams = useSearchParams();
 
   const topic = searchParams.get('topic') || 'default-topic';
@@ -20,5 +19,13 @@ export default function QuizPage() {
       clientType={clientType}
       questionType={questionType}
     />
+  );
+}
+
+export default function QuizPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading quiz...</div>}>
+      <QuizContent />
+    </Suspense>
   );
 }
