@@ -10,7 +10,17 @@ interface Question {
   answer: string;
 }
 
-export default function QuizComponentInner({ topic, limit, clientType, questionType }: { topic: string; limit: number; clientType: string; questionType: string; }) {
+export default function QuizComponentInner({ 
+  topic, 
+  limit, 
+  clientType, 
+  questionType 
+}: { 
+  topic: string; 
+  limit: number; 
+  clientType: string; 
+  questionType: string; 
+}) {
   const [engine, setEngine] = useState<webllm.MLCEngine | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('Preparing AI engine...');
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -19,104 +29,159 @@ export default function QuizComponentInner({ topic, limit, clientType, questionT
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
-  const [aiResponse, setAiResponse] = useState('');
 
-  const modelUrl = 'https://huggingface.co/mlc-ai/gemma-3-1b-it-q4bf16_0-MLC/resolve/main/gemma-3-1b-it-q4bf16_0.gguf';
-
-  // ✅ Fetch model manually with progress
-  const downloadModel = async () => {
-    setLoadingMessage('Downloading Gemma 3 1B IT model...');
-    const response = await fetch(modelUrl);
-    if (!response.body) throw new Error('ReadableStream not supported');
-
-    const contentLength = +response.headers.get('Content-Length')!;
-    const reader = response.body.getReader();
-    const chunks = [];
-    let receivedLength = 0;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value) {
-        chunks.push(value);
-        receivedLength += value.length;
-        setDownloadProgress(receivedLength / contentLength);
-        setLoadingMessage(`Downloading model... ${Math.floor((receivedLength / contentLength) * 100)}%`);
-      }
-    }
-
-    // Combine chunks
-    const blob = new Blob(chunks);
-    return blob;
-  };
+  // ✅ Just the model ID
+  const MODEL_ID = 'gemma-3-1b-it';
 
   const initEngine = async () => {
     try {
-      const modelBlob = await downloadModel(); // Fetch first
-      setLoadingMessage('Initializing engine...');
+      setLoadingMessage('Initializing Gemma 3 1B model...');
 
-      // You can either pass blob directly or convert to object URL
-      const objectUrl = URL.createObjectURL(modelBlob);
-
-      const engineInstance = await webllm.CreateMLCEngine(objectUrl, {
+      const engineInstance = await webllm.CreateMLCEngine(MODEL_ID, {
         initProgressCallback: (progress) => {
-          setLoadingMessage(`Initializing AI engine... ${Math.floor(progress.progress * 100)}%`);
+          setDownloadProgress(progress.progress);
+          
+          if (progress.text) {
+            setLoadingMessage(progress.text);
+          } else {
+            setLoadingMessage(
+              `Loading model... ${Math.floor(progress.progress * 100)}%`
+            );
+          }
         },
       });
 
       setEngine(engineInstance);
       setLoadingMessage('Model ready! Generating questions...');
-      setDownloadProgress(1);
 
       const generated = await generateQuestions(engineInstance);
       setQuestions(generated);
+      setLoadingMessage('');
     } catch (err) {
       console.error('Engine initialization failed:', err);
-      setLoadingMessage('❌ Failed to initialize AI engine. Using fallback questions.');
-      setQuestions([
-        { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
-      ]);
+      setLoadingMessage(`❌ Failed to load model: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      
+      setQuestions(
+        Array.from({ length: limit }, (_, i) => ({
+          id: i + 1,
+          question: `Sample ${questionType} question ${i + 1} about ${topic}?`,
+          options: questionType === 'multiple-choice' 
+            ? ['Option A', 'Option B', 'Option C', 'Option D'] 
+            : undefined,
+          answer: 'Option A',
+        }))
+      );
     }
   };
 
   useEffect(() => {
     initEngine();
+    
+    return () => {
+      if (engine) {
+        engine.unload();
+      }
+    };
   }, []);
 
-  const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
-    const prompt = `Create ${limit} ${questionType} quiz questions about ${topic}. Format as JSON array: [{ id, question, options, answer }]. Keep short and clear.`;
+  const generateQuestions = async (engineInstance: webllm.MLCEngine): Promise<Question[]> => {
+    const formatInstructions = questionType === 'multiple-choice'
+      ? 'Each question must have 4 options and specify which option is correct.'
+      : 'Each question should have a short text answer.';
+
+    const prompt = `Generate exactly ${limit} ${questionType} quiz questions about "${topic}". 
+${formatInstructions}
+
+Format your response as a valid JSON array with this exact structure:
+[
+  {
+    "id": 1,
+    "question": "Question text here?",
+    ${questionType === 'multiple-choice' ? '"options": ["Option A", "Option B", "Option C", "Option D"],' : ''}
+    "answer": "${questionType === 'multiple-choice' ? 'Option A' : 'Short answer text'}"
+  }
+]
+
+Important: Return ONLY the JSON array, no other text or explanation.`;
 
     try {
       const reply = await engineInstance.chat.completions.create({
         messages: [
-          { role: 'system', content: 'You are a helpful quiz generator AI.' },
+          { 
+            role: 'system', 
+            content: 'You are a quiz generator. Always respond with valid JSON only.' 
+          },
           { role: 'user', content: prompt },
         ],
         temperature: 0.7,
+        max_tokens: 2000,
       });
 
       const content = reply?.choices?.[0]?.message?.content?.trim();
       if (!content) throw new Error('Empty response from model');
-      return JSON.parse(content) as Question[];
+
+      let jsonString = content;
+      
+      const codeBlockMatch = content.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
+      if (codeBlockMatch) {
+        jsonString = codeBlockMatch[1];
+      } else {
+        const arrayMatch = content.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+          jsonString = arrayMatch[0];
+        }
+      }
+
+      const parsed = JSON.parse(jsonString) as Question[];
+      
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        throw new Error('Invalid question format');
+      }
+
+      const validated = parsed.filter(q => 
+        q.question && q.answer && 
+        (questionType !== 'multiple-choice' || (q.options && q.options.length > 0))
+      );
+
+      return validated.slice(0, limit);
     } catch (err) {
-      console.warn('Failed to parse AI JSON, returning fallback.', err);
-      return [
-        { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
-      ];
+      console.warn('Failed to parse AI response:', err);
+      
+      return Array.from({ length: limit }, (_, i) => ({
+        id: i + 1,
+        question: `Sample question ${i + 1} about ${topic}?`,
+        options: questionType === 'multiple-choice' 
+          ? ['Option A', 'Option B', 'Option C', 'Option D'] 
+          : undefined,
+        answer: questionType === 'multiple-choice' ? 'Option A' : 'Sample answer',
+      }));
     }
   };
 
   if (!engine || questions.length === 0) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium">
-        <p>{loadingMessage}</p>
+      <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4">
+        <p className="text-center">{loadingMessage}</p>
         <div className="w-64 h-4 mt-3 bg-gray-300 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-600 transition-all" style={{ width: `${Math.floor(downloadProgress * 100)}%` }} />
+          <div 
+            className="h-full bg-blue-600 transition-all duration-300" 
+            style={{ width: `${Math.floor(downloadProgress * 100)}%` }} 
+          />
         </div>
-        {downloadProgress > 0 && downloadProgress < 1 && <p className="text-sm mt-1">{Math.floor(downloadProgress * 100)}%</p>}
+        {downloadProgress > 0 && (
+          <p className="text-sm mt-1 text-gray-600">
+            {Math.floor(downloadProgress * 100)}%
+          </p>
+        )}
       </div>
     );
   }
 
-  return <div>…Your quiz rendering here (same as before)…</div>;
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Quiz: {topic}</h2>
+      <p className="mb-4">Loaded {questions.length} questions</p>
+      {/* Add your quiz UI here */}
+    </div>
+  );
 }
