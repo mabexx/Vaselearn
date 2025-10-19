@@ -31,18 +31,20 @@ export default function QuizComponentInner({
   const [isComplete, setIsComplete] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
 
-  // ✅ Use a known working in-browser model
-  const modelId = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+  // ✅ Use Gemma 3 1B IT model
+  const modelUrl =
+    'https://huggingface.co/mlc-ai/gemma-3-1b-it-q4bf16_0-MLC/resolve/main/gemma-3-1b-it-q4bf16_0.gguf';
 
   // 🚀 Initialize AI engine
   useEffect(() => {
     const init = async () => {
       try {
-        setLoadingMessage('Initializing WebLLM engine...');
-        const engineInstance = await webllm.CreateMLCEngine(modelId, {
+        setLoadingMessage('Initializing Gemma 3 1B IT engine...');
+
+        const engineInstance = await webllm.CreateMLCEngine(modelUrl, {
           initProgressCallback: (progress) => {
             setLoadingMessage(
-              `Loading model... ${Math.floor(progress.progress * 100)}%`
+              `Loading AI model... ${Math.floor(progress.progress * 100)}%`
             );
           },
         });
@@ -54,44 +56,50 @@ export default function QuizComponentInner({
         setQuestions(generated);
       } catch (err) {
         console.error('Engine initialization failed:', err);
-        setLoadingMessage('❌ Failed to initialize AI engine.');
+        setLoadingMessage('❌ Failed to initialize AI engine. Using fallback questions.');
+
+        // fallback
+        setQuestions([
+          { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
+        ]);
       }
     };
 
     init();
   }, []);
 
-  // 🧠 Generate quiz questions using the model
+  // 🧠 Generate quiz questions
   const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
     setLoadingMessage('Generating quiz questions...');
     const prompt = `
-    Create ${limit} ${questionType} quiz questions about ${topic}.
-    Format as a JSON array of objects: { id, question, options (if any), answer }.
-    Keep it simple, factual, and short.
+      Create ${limit} ${questionType} quiz questions about ${topic}.
+      Format as a JSON array: [{ id, question, options (if any), answer }].
+      Keep it short, factual, and clear.
     `;
 
-    const reply = await engineInstance.chat.completions.create({
-      messages: [
-        { role: 'system', content: 'You are a helpful quiz generator AI.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-    });
-
     try {
+      const reply = await engineInstance.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You are a helpful quiz generator AI.' },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.7,
+      });
+
       const content = reply?.choices?.[0]?.message?.content?.trim();
       if (!content) throw new Error('Empty response from model');
+
       const json = JSON.parse(content);
       return json as Question[];
     } catch (err) {
-      console.warn('Failed to parse AI JSON, using fallback questions.', err);
+      console.warn('Failed to parse AI JSON, returning fallback.', err);
       return [
         { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
       ];
     }
   };
 
-  // 🎯 Handle answer submission
+  // 🎯 Submit answer
   const handleSubmit = () => {
     const current = questions[currentQuestion];
     if (!current) return;
@@ -108,23 +116,31 @@ export default function QuizComponentInner({
     }
   };
 
-  // 💬 Ask AI for an explanation
+  // 💬 Ask AI for explanation
   const handleAskAI = async () => {
     if (!engine || !questions[currentQuestion]) return;
     const q = questions[currentQuestion].question;
     setLoadingMessage('AI is explaining...');
-    const reply = await engine.chat.completions.create({
-      messages: [
-        { role: 'system', content: 'You are a tutor explaining quiz answers.' },
-        { role: 'user', content: `Explain the correct answer to: ${q}` },
-      ],
-      temperature: 0.6,
-    });
-    setAiResponse(reply.choices?.[0]?.message?.content ?? '');
-    setLoadingMessage('');
+
+    try {
+      const reply = await engine.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You are a tutor explaining quiz answers.' },
+          { role: 'user', content: `Explain the correct answer to: ${q}` },
+        ],
+        temperature: 0.6,
+      });
+
+      setAiResponse(reply.choices?.[0]?.message?.content ?? 'No explanation returned.');
+    } catch (err) {
+      console.error('AI explanation failed:', err);
+      setAiResponse('Failed to get explanation.');
+    } finally {
+      setLoadingMessage('');
+    }
   };
 
-  // 🕓 Loading state
+  // 🕓 Loading screen
   if (!engine || questions.length === 0) {
     return (
       <div className="flex justify-center items-center min-h-screen text-lg font-medium">
@@ -133,12 +149,14 @@ export default function QuizComponentInner({
     );
   }
 
-  // 🎉 Quiz complete view
+  // 🎉 Quiz complete
   if (isComplete) {
     return (
       <div className="p-6 text-center">
         <h1 className="text-2xl font-bold mb-4">Quiz Complete 🎯</h1>
-        <p className="text-lg mb-2">Your Score: {score} / {questions.length}</p>
+        <p className="text-lg mb-2">
+          Your Score: {score} / {questions.length}
+        </p>
         <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 mt-4 bg-blue-600 text-white rounded-xl"
@@ -149,7 +167,7 @@ export default function QuizComponentInner({
     );
   }
 
-  // 🧩 Active quiz view
+  // 🧩 Active quiz
   const current = questions[currentQuestion];
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-4">
