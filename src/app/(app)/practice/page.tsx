@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import clientsData from '@/lib/vls-clients.json';
 import type { VLSClient, VLSTopic } from '@/lib/types/VLS';
 
-export default function PracticePage() {
+function PracticeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clients: VLSClient[] = clientsData.clients;
@@ -172,5 +171,17 @@ export default function PracticePage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function PracticePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-lg">Loading practice page...</p>
+      </div>
+    }>
+      <PracticeContent />
+    </Suspense>
   );
 }
