@@ -30,30 +30,44 @@ export default function QuizComponentInner({
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
-  const MODEL_ID = 'gemma-3-1b-it';
+  const MODEL_ID = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'; // Use a prebuilt model instead
 
-  // Custom app config with Gemma model
-  const customAppConfig: webllm.AppConfig = {
-    model_list: [
-      {
-        model_id: MODEL_ID,
-        model: 'https://huggingface.co/mlc-ai/gemma-3-1b-it-q4bf16_0-MLC',
-        model_lib: 'https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/gemma-3-1b-it/gemma-3-1b-it-q4bf16_0-ctx4k_cs1k-webgpu.wasm',
-        vram_required_MB: 2048,
-        low_resource_required: false,
-        overrides: {
-          context_window_size: 4096,
-        }
+  // Check storage availability
+  const checkStorageQuota = async () => {
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+      const estimate = await navigator.storage.estimate();
+      const percentUsed = ((estimate.usage || 0) / (estimate.quota || 1)) * 100;
+      console.log('Storage used:', estimate.usage, 'of', estimate.quota);
+      console.log('Storage percent used:', percentUsed.toFixed(2) + '%');
+      
+      if (percentUsed > 90) {
+        setLoadingMessage('⚠️ Storage almost full. Clearing cache...');
+        await clearCache();
       }
-    ]
+    }
+  };
+
+  // Clear cache if needed
+  const clearCache = async () => {
+    try {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
+      console.log('Cache cleared successfully');
+    } catch (err) {
+      console.warn('Failed to clear cache:', err);
+    }
   };
 
   const initEngine = async () => {
     try {
-      setLoadingMessage('Initializing Gemma 3 1B model with custom config...');
+      await checkStorageQuota();
+      
+      setLoadingMessage('Initializing AI model (using prebuilt Llama)...');
 
+      // Use prebuilt model with simpler config
       const engineInstance = await webllm.CreateMLCEngine(MODEL_ID, {
-        appConfig: customAppConfig,
         initProgressCallback: (progress) => {
           setDownloadProgress(progress.progress);
           
@@ -64,6 +78,8 @@ export default function QuizComponentInner({
               `Loading model... ${Math.floor(progress.progress * 100)}%`
             );
           }
+          
+          console.log('Progress:', progress);
         },
       });
 
@@ -75,7 +91,13 @@ export default function QuizComponentInner({
       setLoadingMessage('');
     } catch (err) {
       console.error('Engine initialization failed:', err);
-      setLoadingMessage(`❌ Failed to load model: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      
+      // Check if it's a cache error
+      if (err instanceof Error && err.message.includes('Cache')) {
+        setLoadingMessage('❌ Storage error. Try: 1) Clear browser cache, 2) Free up disk space, 3) Use incognito mode');
+      } else {
+        setLoadingMessage(`❌ Failed to load model: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
       
       // Fallback questions
       setQuestions(
@@ -139,12 +161,10 @@ Important: Return ONLY the JSON array, no other text or explanation.`;
 
       let jsonString = content;
       
-      // Remove markdown code blocks
       const codeBlockMatch = content.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
       if (codeBlockMatch) {
         jsonString = codeBlockMatch[1];
       } else {
-        // Try to find JSON array in the text
         const arrayMatch = content.match(/\[[\s\S]*\]/);
         if (arrayMatch) {
           jsonString = arrayMatch[0];
@@ -157,7 +177,6 @@ Important: Return ONLY the JSON array, no other text or explanation.`;
         throw new Error('Invalid question format');
       }
 
-      // Validate each question
       const validated = parsed.filter(q => 
         q.question && q.answer && 
         (questionType !== 'multiple-choice' || (q.options && q.options.length > 0))
@@ -178,11 +197,10 @@ Important: Return ONLY the JSON array, no other text or explanation.`;
     }
   };
 
-  // Loading state
   if (!engine || questions.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4">
-        <p className="text-center">{loadingMessage}</p>
+        <p className="text-center max-w-md">{loadingMessage}</p>
         <div className="w-64 h-4 mt-3 bg-gray-300 rounded-full overflow-hidden">
           <div 
             className="h-full bg-blue-600 transition-all duration-300" 
@@ -194,11 +212,23 @@ Important: Return ONLY the JSON array, no other text or explanation.`;
             {Math.floor(downloadProgress * 100)}%
           </p>
         )}
+        
+        {loadingMessage.includes('Storage error') && (
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md">
+            <h3 className="font-bold mb-2">Troubleshooting Steps:</h3>
+            <ol className="list-decimal list-inside space-y-1 text-sm">
+              <li>Clear your browser cache and reload</li>
+              <li>Free up disk space (models are 1-2GB)</li>
+              <li>Try in incognito/private browsing mode</li>
+              <li>Check browser console for details</li>
+              <li>Try a different browser (Chrome/Edge recommended)</li>
+            </ol>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Quiz rendering
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Quiz: {topic}</h2>
