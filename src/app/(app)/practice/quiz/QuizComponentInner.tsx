@@ -23,7 +23,7 @@ export default function QuizComponentInner({
   questionType: string;
 }) {
   const [engine, setEngine] = useState<webllm.MLCEngine | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState('Preparing model...');
+  const [loadingMessage, setLoadingMessage] = useState('Preparing AI engine...');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
@@ -31,66 +31,65 @@ export default function QuizComponentInner({
   const [isComplete, setIsComplete] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
 
-  // 🔗 Use a hosted model (can be Hugging Face, S3, or your own endpoint)
-  const modelUrl =
-    'https://huggingface.co/mlc-ai/web-llm-models/resolve/main/Llama-3-8B-Instruct-q4f16_1-MLC/';
+  // ✅ Use a known working in-browser model
+  const modelId = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
 
-  // 🚀 Initialize model
+  // 🚀 Initialize AI engine
   useEffect(() => {
     const init = async () => {
       try {
-        setLoadingMessage('Checking cache / downloading AI engine...');
-        const engineInstance = await webllm.CreateMLCEngine(modelUrl, {
+        setLoadingMessage('Initializing WebLLM engine...');
+        const engineInstance = await webllm.CreateMLCEngine(modelId, {
           initProgressCallback: (progress) => {
             setLoadingMessage(
               `Loading model... ${Math.floor(progress.progress * 100)}%`
             );
           },
         });
-        setEngine(engineInstance);
-        setLoadingMessage('AI Engine ready!');
 
-        // Load initial quiz questions
+        setEngine(engineInstance);
+        setLoadingMessage('AI engine ready! Generating questions...');
+
         const generated = await generateQuestions(engineInstance);
         setQuestions(generated);
       } catch (err) {
         console.error('Engine initialization failed:', err);
-        setLoadingMessage('Failed to initialize AI engine.');
+        setLoadingMessage('❌ Failed to initialize AI engine.');
       }
     };
 
     init();
   }, []);
 
-  // 🧠 Generate questions dynamically using LLM
-const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
-  setLoadingMessage('Generating quiz questions...');
-  const prompt = `
-  Create ${limit} ${questionType} quiz questions about ${topic}.
-  Format each question as JSON with fields: id, question, options (if any), and answer.
-  Keep it concise and factual.
-  `;
+  // 🧠 Generate quiz questions using the model
+  const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
+    setLoadingMessage('Generating quiz questions...');
+    const prompt = `
+    Create ${limit} ${questionType} quiz questions about ${topic}.
+    Format as a JSON array of objects: { id, question, options (if any), answer }.
+    Keep it simple, factual, and short.
+    `;
 
-  const reply = await engineInstance.chat.completions.create({
-    messages: [
-      { role: 'system', content: 'You are a helpful quiz generator AI.' },
-      { role: 'user', content: prompt },
-    ],
-    temperature: 0.7,
-  });
+    const reply = await engineInstance.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are a helpful quiz generator AI.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+    });
 
-  try {
-    const content = reply?.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error('Empty response from model');
-    const json = JSON.parse(content);
-    return json as Question[];
-  } catch (err) {
-    console.warn('Failed to parse AI JSON, returning fallback questions.', err);
-    return [
-      { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
-    ];
-  }
-};
+    try {
+      const content = reply?.choices?.[0]?.message?.content?.trim();
+      if (!content) throw new Error('Empty response from model');
+      const json = JSON.parse(content);
+      return json as Question[];
+    } catch (err) {
+      console.warn('Failed to parse AI JSON, using fallback questions.', err);
+      return [
+        { id: 1, question: 'What is AI?', options: ['A', 'B', 'C'], answer: 'A' },
+      ];
+    }
+  };
 
   // 🎯 Handle answer submission
   const handleSubmit = () => {
@@ -109,7 +108,7 @@ const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
     }
   };
 
-  // 💬 Optional: Ask AI to explain a question
+  // 💬 Ask AI for an explanation
   const handleAskAI = async () => {
     if (!engine || !questions[currentQuestion]) return;
     const q = questions[currentQuestion].question;
@@ -125,7 +124,7 @@ const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
     setLoadingMessage('');
   };
 
-  // 🕓 Loading screen
+  // 🕓 Loading state
   if (!engine || questions.length === 0) {
     return (
       <div className="flex justify-center items-center min-h-screen text-lg font-medium">
@@ -134,7 +133,7 @@ const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
     );
   }
 
-  // 🎉 Quiz complete
+  // 🎉 Quiz complete view
   if (isComplete) {
     return (
       <div className="p-6 text-center">
@@ -150,7 +149,7 @@ const generateQuestions = async (engineInstance: webllm.MLCEngine) => {
     );
   }
 
-  // 🧩 Active question view
+  // 🧩 Active quiz view
   const current = questions[currentQuestion];
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-4">
