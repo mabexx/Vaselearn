@@ -1,10 +1,9 @@
-// src/app/(app)/practice/quiz/page.tsx
 'use client';
 
 import { useSearchParams } from 'next/navigation';
 import QuizComponentInner from './QuizComponentInner';
 
-export const dynamic = 'force-no-static'; // 👈 Prevents static export / prerendering
+export const dynamic = 'force-dynamic'; // ✅ correct for your version
 
 export default function QuizPage() {
   const searchParams = useSearchParams();
