@@ -4,6 +4,8 @@
 import { useSearchParams } from 'next/navigation';
 import QuizComponentInner from './QuizComponentInner';
 
+export const dynamic = 'force-no-static'; // 👈 Prevents static export / prerendering
+
 export default function QuizPage() {
   const searchParams = useSearchParams();
 
