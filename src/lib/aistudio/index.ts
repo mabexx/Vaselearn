@@ -33,8 +33,13 @@ export async function saveApiKey(apiKey: string): Promise<void> {
   const user = auth.currentUser;
 
   if (user) {
-    const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, { aiStudioApiKey: apiKey }, { merge: true });
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, { aiStudioApiKey: apiKey }, { merge: true });
+    } catch (error) {
+      console.error('Failed to save API key:', error);
+      throw new Error('Failed to save API key.');
+    }
   } else {
     throw new Error('User not authenticated.');
   }
