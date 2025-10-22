@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getApiKey } from '@/lib/aistudio';
+import { getApiKey, getModel } from '@/lib/aistudio';
 
 interface Question {
   id: number;
@@ -11,8 +11,6 @@ interface Question {
   options?: string[];
   answer: string;
 }
-
-const GEMMA_MODEL = 'gemma-3-27b-it';
 
 export default function QuizComponentInner({ 
   topic, 
@@ -26,6 +24,7 @@ export default function QuizComponentInner({
   questionType: string; 
 }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -36,29 +35,31 @@ export default function QuizComponentInner({
   const router = useRouter();
 
   useEffect(() => {
-    const fetchApiKeyAndGenerateQuestions = async () => {
-      setLoadingMessage('Retrieving API key...');
-      const key = await getApiKey();
+    const fetchSettingsAndGenerateQuestions = async () => {
+      setLoadingMessage('Retrieving settings...');
+      const key = getApiKey();
+      const model = getModel();
 
-      if (!key) {
+      if (!key || !model) {
         router.push('/practice/connect');
         return;
       }
       
       setApiKey(key);
+      setModelId(model);
       setLoadingMessage('Generating quiz questions...');
-      const generated = await generateQuestions(key);
+      const generated = await generateQuestions(key, model);
       setQuestions(generated);
       setLoading(false);
       setLoadingMessage('');
     };
 
-    fetchApiKeyAndGenerateQuestions();
+    fetchSettingsAndGenerateQuestions();
   }, []);
 
-  const generateQuestions = async (apiKey: string): Promise<Question[]> => {
+  const generateQuestions = async (apiKey: string, modelId: string): Promise<Question[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: GEMMA_MODEL });
+    const model = genAI.getGenerativeModel({ model: modelId });
 
     const formatInstructions = questionType === 'multiple-choice'
       ? 'Each question must have 4 options and specify which option is correct.'
@@ -83,7 +84,7 @@ Important: Return ONLY the JSON array, no other text or explanation.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = await response.text();
-      
+
       let jsonString = text;
 
       const codeBlockMatch = text.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);

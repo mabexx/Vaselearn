@@ -44,7 +44,21 @@ export default function SettingsPage() {
 
   const { data: prefData, isLoading: loadingPrefs } = useCollection<UserPreferences>(preferencesCollection);
 
-  const preferences = useMemo(() => prefData?.[0] || { notifications: { push: false, email: true } }, [prefData]);
+  const preferences = useMemo(() => {
+    const defaultPrefs = { notifications: { push: false, email: true } };
+    const userPrefs = prefData?.[0];
+    if (userPrefs) {
+      return {
+        ...defaultPrefs,
+        ...userPrefs,
+        notifications: {
+          ...defaultPrefs.notifications,
+          ...userPrefs.notifications,
+        },
+      };
+    }
+    return defaultPrefs;
+  }, [prefData]);
   
   useEffect(() => {
     if (user?.displayName) {
