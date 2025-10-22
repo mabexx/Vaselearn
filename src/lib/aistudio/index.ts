@@ -1,10 +1,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase';
 
-const { firestore: db } = initializeFirebase();
+const API_KEY_STORAGE_KEY = 'aiStudioApiKey';
 const GEMMA_MODEL = 'gemma-3-27b-it';
 
 /**
@@ -25,39 +22,27 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
 }
 
 /**
- * Saves the given API key to the current user's profile in Firestore.
+ * Saves the given API key to the browser's local storage.
  * @param apiKey The API key to save.
  */
-export async function saveApiKey(apiKey: string): Promise<void> {
-  const auth = getAuth();
-  const user = auth.currentUser;
-
-  if (user) {
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, { aiStudioApiKey: apiKey }, { merge: true });
-    } catch (error) {
-      console.error('Failed to save API key:', error);
-      throw new Error('Failed to save API key.');
-    }
-  } else {
-    throw new Error('User not authenticated.');
+export function saveApiKey(apiKey: string): void {
+  try {
+    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+  } catch (error) {
+    console.error('Failed to save API key to local storage:', error);
+    throw new Error('Failed to save API key.');
   }
 }
 
 /**
- * Retrieves the API key from the current user's profile in Firestore.
+ * Retrieves the API key from the browser's local storage.
  * @returns The API key, or null if it's not set.
  */
-export async function getApiKey(): Promise<string | null> {
-  const auth = getAuth();
-  const user = auth.currentUser;
-
-  if (user) {
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userDocRef);
-    return userDoc.data()?.aiStudioApiKey || null;
-  } else {
+export function getApiKey(): string | null {
+  try {
+    return localStorage.getItem(API_KEY_STORAGE_KEY);
+  } catch (error) {
+    console.error('Failed to retrieve API key from local storage:', error);
     return null;
   }
 }
