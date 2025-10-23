@@ -27,48 +27,14 @@ export default function SettingsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   
   useEffect(() => {
     const appUser = user as (typeof user & { clientType?: string });
     if (appUser?.displayName) {
       const nameParts = appUser.displayName.split(' ');
-      setFirstName(nameParts[0] || '');
-      setLastName(nameParts.slice(1).join(' ') || '');
     }
   }, [user]);
-
-  const handleSaveChanges = async () => {
-    if (!user || !auth.currentUser || !firestore) return;
-
-    setIsSavingProfile(true);
-    const newDisplayName = `${firstName} ${lastName}`.trim();
-
-    try {
-      await updateProfile(auth.currentUser, { displayName: newDisplayName });
-
-      const userProfileRef = doc(firestore, 'users', user.uid);
-      await setDocumentNonBlocking(userProfileRef, { name: newDisplayName }, { merge: true });
-
-      toast({
-        title: 'Success!',
-        description: 'Your profile has been updated.',
-      });
-
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update your profile. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
 
   const handlePasswordReset = async () => {
     if (!user?.email) return;
@@ -142,39 +108,13 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your personal information.</CardDescription>
+          <CardDescription>Your personal information.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); handleSaveChanges(); }}>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first-name">First Name</Label>
-                <Input 
-                  id="first-name" 
-                  value={firstName} 
-                  onChange={(e) => setFirstName(e.target.value)} 
-                  disabled={isUserLoading || isSavingProfile}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last-name">Last Name</Label>
-                <Input 
-                  id="last-name" 
-                  value={lastName} 
-                  onChange={(e) => setLastName(e.target.value)} 
-                  disabled={isUserLoading || isSavingProfile}
-                />
-              </div>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={user?.email || ''} disabled />
             </div>
-            <Button type="submit" disabled={isSavingProfile} className="w-fit">
-              {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </form>
         </CardContent>
       </Card>
 
