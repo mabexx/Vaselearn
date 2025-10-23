@@ -19,7 +19,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { downloadJson } from '@/lib/utils';
 import { PracticeSession, Note, Mistake, CustomGoal } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { clientTypes } from '@/lib/client-types';
 
 
 export default function SettingsPage() {
@@ -30,7 +29,6 @@ export default function SettingsPage() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [clientType, setClientType] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   
@@ -40,9 +38,6 @@ export default function SettingsPage() {
       const nameParts = appUser.displayName.split(' ');
       setFirstName(nameParts[0] || '');
       setLastName(nameParts.slice(1).join(' ') || '');
-    }
-    if (appUser?.clientType) {
-      setClientType(appUser.clientType);
     }
   }, [user]);
 
@@ -56,7 +51,7 @@ export default function SettingsPage() {
       await updateProfile(auth.currentUser, { displayName: newDisplayName });
 
       const userProfileRef = doc(firestore, 'users', user.uid);
-      await setDocumentNonBlocking(userProfileRef, { name: newDisplayName, clientType }, { merge: true });
+      await setDocumentNonBlocking(userProfileRef, { name: newDisplayName }, { merge: true });
 
       toast({
         title: 'Success!',
@@ -174,21 +169,6 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={user?.email || ''} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="clientType">Organization Type</Label>
-              <Select value={clientType} onValueChange={setClientType}>
-                <SelectTrigger id="clientType">
-                  <SelectValue placeholder="Select your organization type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <Button type="submit" disabled={isSavingProfile} className="w-fit">
               {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
