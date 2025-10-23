@@ -1,4 +1,4 @@
-# **App Name**: StudyFlow
+# **App Name**: vaselearn
 
 ## Core Features:
 

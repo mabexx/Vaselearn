@@ -103,15 +103,11 @@ export default function SignupPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center">
           <Logo className="h-10 w-10 mb-4 text-primary" />
-          <h1 className="text-3xl font-bold">Create Your StudyFlow Account</h1>
-          <p className="text-muted-foreground">Unlock a smarter way to learn.</p>
+          <h1 className="text-3xl font-bold">Create Your vaselearn Account</h1>
         </div>
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Sign Up</CardTitle>
-            <CardDescription>
-              Enter your information to create an account
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup} className="grid gap-4">
