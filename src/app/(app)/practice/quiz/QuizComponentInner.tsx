@@ -4,12 +4,17 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getApiKey, getModel } from '@/lib/aistudio';
+import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
+import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
+import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
 
 interface Question {
-  id: number;
+  type: 'multiple-choice' | 'true-false' | 'case-based';
   question: string;
   options?: string[];
-  answer: string;
+  answer?: string | boolean;
+  prompt?: string;
+  idealAnswer?: string;
 }
 
 export default function QuizComponentInner({ 
@@ -29,9 +34,10 @@ export default function QuizComponentInner({
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [userAnswer, setUserAnswer] = useState('');
+  const [userAnswers, setUserAnswers] = useState<(string | boolean)[]>([]);
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,24 +67,39 @@ export default function QuizComponentInner({
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: modelId });
 
-    const formatInstructions = questionType === 'multiple-choice'
-      ? 'Each question must have 4 options and specify which option is correct.'
-      : 'Each question should have a short text answer.';
+    const prompt = `
+      Generate exactly ${limit} quiz questions about the topic "${topic}".
+      The target audience is learners associated with a "${clientType}".
+      The quiz should be of the type "${questionType}".
 
-    const prompt = `Generate exactly ${limit} ${questionType} quiz questions about "${topic}". 
-${formatInstructions}
+      Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple-choice", "true-false", or "case-based", and a "question" field.
+      - For "multiple-choice", include an "options" array and an "answer" field with the correct option.
+      - For "true-false", include an "answer" field that is a boolean.
+      - For "case-based", include a "prompt" field for the user to respond to and an "idealAnswer" field.
 
-Format your response as a valid JSON array with this exact structure:
-[
-  {
-    "id": 1,
-    "question": "Question text here?",
-    ${questionType === 'multiple-choice' ? '"options": ["Option A", "Option B", "Option C", "Option D"],' : ''}
-    "answer": "${questionType === 'multiple-choice' ? 'Option A' : 'Short answer text'}"
-  }
-]
+      Example structure:
+      [
+        {
+          "type": "multiple-choice",
+          "question": "What is the capital of France?",
+          "options": ["London", "Berlin", "Paris", "Madrid"],
+          "answer": "Paris"
+        },
+        {
+          "type": "true-false",
+          "question": "The earth is flat.",
+          "answer": false
+        },
+        {
+          "type": "case-based",
+          "question": "A user is having trouble logging in. They have reset their password but still can't access their account.",
+          "prompt": "What are the next steps to troubleshoot this issue?",
+          "idealAnswer": "Check if the user's account is locked, verify the email address they are using, and check for any recent security alerts."
+        }
+      ]
 
-Important: Return ONLY the JSON array, no other text or explanation.`;
+      Important: Return ONLY the JSON array, no other text or explanation.
+    `;
 
     try {
       const result = await model.generateContent(prompt);
@@ -134,75 +155,101 @@ Important: Return ONLY the JSON array, no other text or explanation.`;
             Question {currentQuestion + 1} of {questions.length}
           </div>
           
-          <h3 className="text-xl font-semibold mb-4">
-            {questions[currentQuestion]?.question}
-          </h3>
-
-          {questionType === 'multiple-choice' && questions[currentQuestion]?.options ? (
-            <div className="space-y-2">
-              {questions[currentQuestion].options!.map((option, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setUserAnswer(option)}
-                  className={`w-full p-3 text-left border rounded-lg transition-colors ${
-                    userAnswer === option 
-                      ? 'bg-blue-100 border-blue-500' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <input
-              type="text"
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
-              placeholder="Type your answer..."
-              className="w-full p-3 border rounded-lg"
-            />
-          )}
+          <div>
+            {questions[currentQuestion]?.type === 'multiple-choice' && (
+              <QuestionMultipleChoice
+                question={questions[currentQuestion]}
+                onAnswer={(answer) => {
+                  const newAnswers = [...userAnswers];
+                  newAnswers[currentQuestion] = answer;
+                  setUserAnswers(newAnswers);
+                }}
+                userAnswer={userAnswers[currentQuestion] as string}
+              />
+            )}
+            {questions[currentQuestion]?.type === 'true-false' && (
+              <QuestionTrueFalse
+                question={questions[currentQuestion]}
+                onAnswer={(answer) => {
+                  const newAnswers = [...userAnswers];
+                  newAnswers[currentQuestion] = answer;
+                  setUserAnswers(newAnswers);
+                }}
+                userAnswer={userAnswers[currentQuestion] as boolean}
+              />
+            )}
+            {questions[currentQuestion]?.type === 'case-based' && (
+              <QuestionCaseBased
+                question={questions[currentQuestion]}
+                onAnswer={(answer) => {
+                  const newAnswers = [...userAnswers];
+                  newAnswers[currentQuestion] = answer;
+                  setUserAnswers(newAnswers);
+                }}
+                userAnswer={userAnswers[currentQuestion] as string}
+              />
+            )}
+          </div>
 
           <button
             onClick={() => {
-              if (userAnswer === questions[currentQuestion].answer) {
+              if (userAnswers[currentQuestion] === questions[currentQuestion].answer) {
                 setScore(score + 1);
               }
               
               if (currentQuestion < questions.length - 1) {
                 setCurrentQuestion(currentQuestion + 1);
-                setUserAnswer('');
               } else {
                 setIsComplete(true);
               }
             }}
-            disabled={!userAnswer}
+            disabled={userAnswers[currentQuestion] === undefined}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
           >
             {currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
           </button>
         </div>
       ) : (
-        <div className="text-center space-y-4">
-          <h3 className="text-2xl font-bold">Quiz Complete!</h3>
-          <p className="text-xl">
-            Your score: {score} / {questions.length}
-          </p>
-          <p className="text-lg">
-            {Math.round((score / questions.length) * 100)}%
-          </p>
-          <button
-            onClick={() => {
-              setCurrentQuestion(0);
-              setUserAnswer('');
-              setScore(0);
-              setIsComplete(false);
-            }}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Restart Quiz
-          </button>
+        <div>
+          {showSummary ? (
+            <div>
+              <h3 className="text-2xl font-bold mb-4">Quiz Summary</h3>
+              {questions.map((q, index) => (
+                <div key={index} className="mb-4 p-4 border rounded-lg">
+                  <p className="font-semibold">{q.question}</p>
+                  <p>Your answer: {String(userAnswers[index])}</p>
+                  <p>Correct answer: {String(q.answer)}</p>
+                  <p>Status: {String(userAnswers[index]) === String(q.answer) ? 'Correct' : 'Incorrect'}</p>
+                </div>
+              ))}
+              <Button onClick={() => setShowSummary(false)}>Back to Score</Button>
+            </div>
+          ) : (
+            <div className="text-center space-y-4">
+              <h3 className="text-2xl font-bold">Quiz Complete!</h3>
+              <p className="text-xl">
+                Your score: {score} / {questions.length}
+              </p>
+              <p className="text-lg">
+                {Math.round((score / questions.length) * 100)}%
+              </p>
+              <div className="flex justify-center space-x-4">
+                <Button
+                  onClick={() => {
+                    setCurrentQuestion(0);
+                    setUserAnswers([]);
+                    setScore(0);
+                    setIsComplete(false);
+                  }}
+                >
+                  Restart Quiz
+                </Button>
+                <Button onClick={() => setShowSummary(true)}>
+                  Review Answers
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
