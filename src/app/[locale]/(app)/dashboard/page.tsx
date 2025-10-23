@@ -250,7 +250,7 @@ export default function Dashboard() {
     
     const now = new Date();
     const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
-    downloadJson(reportData, `studyflow-report_${timestamp}.json`);
+    downloadJson(reportData, `vaselearn-report_${timestamp}.json`);
   };
 
   const isLoading = isLoadingSessions || isLoadingCustomGoals;

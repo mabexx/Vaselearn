@@ -18,6 +18,8 @@ import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { downloadJson } from '@/lib/utils';
 import { PracticeSession, Note, Mistake, CustomGoal } from '@/lib/types';
+import ApiKeyManager from '@/components/ApiKeyManager';
+import { useTranslations } from 'next-intl';
 
 
 interface UserPreferences {
@@ -28,6 +30,7 @@ interface UserPreferences {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('SettingsPage');
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -64,7 +67,7 @@ export default function SettingsPage() {
       await updateProfile(auth.currentUser, { displayName: newDisplayName });
 
       const userProfileRef = doc(firestore, 'users', user.uid);
-      await setDocumentNonBlocking(userProfileRef, { name: newDisplayName }, { merge: true });
+      await setDocumentNonBlocking(userProfileRef, { name: a_newDisplayName }, { merge: true });
 
       toast({
         title: 'Success!',
@@ -162,7 +165,7 @@ export default function SettingsPage() {
             exportData[collectionName] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }
         
-        downloadJson(exportData, `studyflow-export-${user.uid}.json`);
+        downloadJson(exportData, `vaselearn-export-${user.uid}.json`);
 
      } catch(error) {
         console.error("Error exporting data:", error);
@@ -175,14 +178,14 @@ export default function SettingsPage() {
     <div className="grid gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your personal information.</CardDescription>
+          <CardTitle>{t('profile')}</CardTitle>
+          <CardDescription>{t('profileDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); handleSaveChanges(); }}>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="first-name">First Name</Label>
+                <Label htmlFor="first-name">{t('firstName')}</Label>
                 <Input 
                   id="first-name" 
                   value={firstName} 
@@ -191,7 +194,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last-name">Last Name</Label>
+                <Label htmlFor="last-name">{t('lastName')}</Label>
                 <Input 
                   id="last-name" 
                   value={lastName} 
@@ -201,12 +204,12 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input id="email" type="email" value={user?.email || ''} disabled />
             </div>
             <Button type="submit" disabled={isSavingProfile} className="w-fit">
               {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {t('saveChanges')}
             </Button>
           </form>
         </CardContent>
@@ -214,23 +217,27 @@ export default function SettingsPage() {
 
       <Separator />
 
+      <ApiKeyManager />
+
+      <Separator />
+
       <Card>
         <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>Manage how you receive notifications.</CardDescription>
+          <CardTitle>{t('notifications')}</CardTitle>
+          <CardDescription>{t('notificationsDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="push-notifications">Push Notifications</Label>
-              <p className="text-sm text-muted-foreground">Receive updates on your device. (Coming soon)</p>
+              <Label htmlFor="push-notifications">{t('pushNotifications')}</Label>
+              <p className="text-sm text-muted-foreground">{t('pushNotificationsDescription')}</p>
             </div>
             <Switch id="push-notifications" disabled/>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">Get weekly summaries and important alerts.</p>
+              <Label htmlFor="email-notifications">{t('emailNotifications')}</Label>
+              <p className="text-sm text-muted-foreground">{t('emailNotificationsDescription')}</p>
             </div>
             <Switch 
                 id="email-notifications" 
@@ -246,24 +253,24 @@ export default function SettingsPage() {
 
       <Card>
           <CardHeader>
-              <CardTitle>Account Management</CardTitle>
-              <CardDescription>Manage your account settings and data.</CardDescription>
+              <CardTitle>{t('accountManagement')}</CardTitle>
+              <CardDescription>{t('accountManagementDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                  <Label>Export Your Data</Label>
-                  <p className="text-sm text-muted-foreground">Download all your notes, goals, and quiz history as a JSON file.</p>
+                  <Label>{t('exportYourData')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('exportYourDataDescription')}</p>
                   <Button variant="secondary" onClick={handleExportData}>
                     <Download className="mr-2"/>
-                    Export My Data
+                    {t('exportMyData')}
                   </Button>
               </div>
               <div className="space-y-2">
-                  <Label>Change Password</Label>
-                  <p className="text-sm text-muted-foreground">Send a password reset link to your email address.</p>
+                  <Label>{t('changePassword')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('changePasswordDescription')}</p>
                   <Button variant="secondary" onClick={handlePasswordReset} disabled={isSendingReset}>
                     {isSendingReset ? <Loader2 className="mr-2 animate-spin"/> : <KeyRound className="mr-2"/>}
-                    Send Reset Link
+                    {t('sendResetLink')}
                   </Button>
               </div>
           </CardContent>
@@ -272,26 +279,25 @@ export default function SettingsPage() {
                 <div className="flex items-start gap-4">
                     <AlertTriangle className="h-6 w-6 text-destructive flex-shrink-0 mt-1"/>
                     <div>
-                        <h4 className="font-semibold text-destructive">Danger Zone</h4>
-                        <p className="text-sm text-destructive/80 mt-1 mb-3">This action is permanent and cannot be undone. This will immediately delete your account and all associated data.</p>
+                        <h4 className="font-semibold text-destructive">{t('dangerZone')}</h4>
+                        <p className="text-sm text-destructive/80 mt-1 mb-3">{t('dangerZoneDescription')}</p>
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
                                <Button variant="destructive">
                                   <Trash2 className="mr-2"/>
-                                  Delete My Account
+                                  {t('deleteMyAccount')}
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete your
-                                    account and remove your data from our servers.
+                                    {t('areYouSureDescription')}
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDeleteAccount}>Continue</AlertDialogAction>
+                                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteAccount}>{t('continue')}</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>

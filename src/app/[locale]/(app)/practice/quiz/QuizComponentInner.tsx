@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import * as webllm from '@mlc-ai/web-llm';
+import { useLocale } from 'next-intl';
 
 interface Question {
   id: number;
@@ -21,6 +22,7 @@ export default function QuizComponentInner({
   clientType: string; 
   questionType: string; 
 }) {
+  const locale = useLocale();
   const [engine, setEngine] = useState<webllm.MLCEngine | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('Preparing AI engine...');
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -128,7 +130,7 @@ export default function QuizComponentInner({
       ? 'Each question must have 4 options and specify which option is correct.'
       : 'Each question should have a short text answer.';
 
-    const prompt = `Generate exactly ${limit} ${questionType} quiz questions about "${topic}". 
+    const prompt = `Generate exactly ${limit} ${questionType} quiz questions about "${topic}" in ${locale}.
 ${formatInstructions}
 
 Format your response as a valid JSON array with this exact structure:
@@ -148,7 +150,7 @@ Important: Return ONLY the JSON array, no other text or explanation.`;
         messages: [
           { 
             role: 'system', 
-            content: 'You are a quiz generator. Always respond with valid JSON only.' 
+            content: `You are a quiz generator. Always respond with valid JSON only. The quiz must be in ${locale}.`
           },
           { role: 'user', content: prompt },
         ],

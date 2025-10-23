@@ -10,8 +10,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import clientsData from '@/lib/vls-clients.json';
 import type { VLSClient, VLSTopic } from '@/lib/types/VLS';
+import { useTranslations } from 'next-intl';
 
 function PracticeContent() {
+  const t = useTranslations('PracticePage');
   const router = useRouter();
   const searchParams = useSearchParams();
   const clients: VLSClient[] = clientsData.clients;
@@ -42,6 +44,7 @@ function PracticeContent() {
   const [selectedClient, setSelectedClient] = useState<VLSClient | null>(getInitialClient());
   const [selectedTopic, setSelectedTopic] = useState<VLSTopic | null>(getInitialTopic(selectedClient));
   const [selectedQuestionType, setSelectedQuestionType] = useState<string>('mixed');
+  const [selectedModel, setSelectedModel] = useState('gemma-3-27b-it');
   const [numQuestions, setNumQuestions] = useState(5);
 
   const handleClientChange = (clientType: string) => {
@@ -69,6 +72,7 @@ function PracticeContent() {
       topic: selectedTopic.title,
       limit: numQuestions.toString(),
       questionType: selectedQuestionType,
+      model: selectedModel,
     });
     
     router.push(`/practice/quiz?${queryParams.toString()}`);
@@ -77,28 +81,25 @@ function PracticeContent() {
   return (
     <div className="flex flex-col items-center gap-8">
       <div className="w-full max-w-2xl text-center">
-        <h1 className="text-3xl font-bold">Practice Room</h1>
-        <p className="text-muted-foreground mt-2">
-          Generate a contextualized quiz based on vocational learning profiles.
-        </p>
+        <h1 className="text-3xl font-bold">{t('practice')}</h1>
       </div>
 
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dumbbell />
-            New Practice Quiz
+            {t('newQuiz')}
           </CardTitle>
           <CardDescription>
-            Select a profile and topic to start a new quiz.
+            {t('newQuizDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
           <div className="grid gap-2">
-            <Label htmlFor="client-type">Client Profile</Label>
+            <Label htmlFor="client-type">{t('clientProfile')}</Label>
             <Select onValueChange={handleClientChange} value={selectedClient?.client_type || ''}>
               <SelectTrigger id="client-type">
-                <SelectValue placeholder="Select a client profile..." />
+                <SelectValue placeholder={t('selectClientProfile')} />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(clientsBySector).map(([sector, clientsInSection]) => (
@@ -118,10 +119,10 @@ function PracticeContent() {
           {selectedClient && (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="topic">Topic</Label>
+                <Label htmlFor="topic">{t('topic')}</Label>
                 <Select onValueChange={handleTopicChange} value={selectedTopic?.title || ''}>
                   <SelectTrigger id="topic">
-                    <SelectValue placeholder="Select a topic..." />
+                    <SelectValue placeholder={t('selectTopic')} />
                   </SelectTrigger>
                   <SelectContent>
                     {selectedClient.topics.hardcoded.map(topic => (
@@ -134,13 +135,13 @@ function PracticeContent() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="question-type">Question Type</Label>
+                <Label htmlFor="question-type">{t('questionType')}</Label>
                 <Select onValueChange={handleQuestionTypeChange} value={selectedQuestionType}>
                   <SelectTrigger id="question-type">
-                    <SelectValue placeholder="Select a question type..." />
+                    <SelectValue placeholder={t('selectQuestionType')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mixed">Mixed (Recommended)</SelectItem>
+                    <SelectItem value="mixed">{t('mixedRecommended')}</SelectItem>
                     {selectedClient.question_generation.style.map(type => (
                       <SelectItem key={type} value={type}>
                         {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -149,11 +150,24 @@ function PracticeContent() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="ai-model">AI Model</Label>
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger id="ai-model">
+                    <SelectValue placeholder="Select a model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gemma-3-27b-it">Gemma 3 27B (Recommended)</SelectItem>
+                    <SelectItem value="gemma-3-9b-it">Gemma 3 9B</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </>
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="num-questions">Number of Questions: {numQuestions}</Label>
+            <Label htmlFor="num-questions">{t('numberOfQuestions', { count: numQuestions })}</Label>
             <Slider
               id="num-questions"
               min={1}
@@ -166,7 +180,7 @@ function PracticeContent() {
         </CardContent>
         <CardFooter>
           <Button onClick={handleStartQuiz} className="w-full" disabled={!selectedClient || !selectedTopic}>
-            Start Quiz
+            {t('startQuiz')}
           </Button>
         </CardFooter>
       </Card>

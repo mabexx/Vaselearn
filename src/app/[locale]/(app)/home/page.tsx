@@ -11,44 +11,11 @@ import { collection, Timestamp } from 'firebase/firestore';
 import { PracticeSession, Mistake } from '@/lib/types';
 import { isSameDay, subDays, differenceInDays } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslations } from 'next-intl';
 
-
-const featureCards = [
-  {
-    icon: Dumbbell,
-    title: 'Adaptive Quizzes',
-    description: 'Generate quizzes on any topic. Our AI adapts to your knowledge level.',
-    href: '/practice',
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-500',
-  },
-  {
-    icon: Layers,
-    title: 'Interactive Flashcards',
-    description: 'Review your mistakes with our smart flashcard system to solidify concepts.',
-    href: '/flashcards',
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-500',
-  },
-  {
-    icon: BookOpen,
-    title: 'Smart Notes',
-    description: 'A powerful, rich-text editor to capture your thoughts and study materials.',
-    href: '/notes',
-    bgColor: 'bg-orange-50',
-    iconColor: 'text-orange-500',
-  },
-  {
-    icon: ShieldAlert,
-    title: 'Mistake Vault',
-    description: 'Every incorrect answer is saved for you to review and learn from.',
-    href: '/mistake-vault',
-    bgColor: 'bg-red-50',
-    iconColor: 'text-red-500',
-  }
-]
 
 export default function HomePage() {
+  const t = useTranslations('HomePage');
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -107,30 +74,62 @@ export default function HomePage() {
 
   const isLoading = isLoadingSessions || isLoadingMistakes;
 
+  const featureCards = [
+    {
+      icon: Dumbbell,
+      title: t('adaptiveQuizzes'),
+      description: t('adaptiveQuizzesDescription'),
+      href: '/practice',
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-500',
+    },
+    {
+      icon: Layers,
+      title: t('interactiveFlashcards'),
+      description: t('interactiveFlashcardsDescription'),
+      href: '/flashcards',
+      bgColor: 'bg-green-50',
+      iconColor: 'text-green-500',
+    },
+    {
+      icon: BookOpen,
+      title: t('smartNotes'),
+      description: t('smartNotesDescription'),
+      href: '/notes',
+      bgColor: 'bg-orange-50',
+      iconColor: 'text-orange-500',
+    },
+    {
+      icon: ShieldAlert,
+      title: t('mistakeVault'),
+      description: t('mistakeVaultDescription'),
+      href: '/mistake-vault',
+      bgColor: 'bg-red-50',
+      iconColor: 'text-red-500',
+    }
+  ]
+
   return (
     <div className="flex w-full flex-col gap-8">
        {/* Hero Section */}
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 p-8 rounded-xl bg-card border flex flex-col justify-center">
                 <h1 className="text-4xl md:text-5xl font-bold">
-                Welcome back, {user?.displayName?.split(' ')[0] || 'Student'}!
+                {t('welcome')}
                 </h1>
-                <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-                    Ready to supercharge your learning? Dive into your personalized dashboard or tackle a new quiz.
-                </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                 <Button asChild size="lg">
-                    <Link href="/dashboard">View Dashboard</Link>
+                    <Link href="/dashboard">{t('dashboard')}</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                    <Link href="/practice">Start a New Quiz <ArrowRight className="ml-2 h-5 w-5" /></Link>
+                    <Link href="/practice">{t('newQuiz')} <ArrowRight className="ml-2 h-5 w-5" /></Link>
                 </Button>
                 </div>
             </div>
             <Card className="flex flex-col justify-center">
                 <CardHeader>
-                    <CardTitle>Quick Stats</CardTitle>
-                    <CardDescription>Your immediate progress at a glance.</CardDescription>
+                    <CardTitle>{t('quickStats')}</CardTitle>
+                    <CardDescription>{t('quickStatsDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {isLoading ? (
@@ -146,7 +145,7 @@ export default function HomePage() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{quickStats.streak} Day{quickStats.streak !== 1 && 's'}</p>
-                            <p className="text-sm text-muted-foreground">Current study streak</p>
+                            <p className="text-sm text-muted-foreground">{t('streak')}</p>
                         </div>
                     </div>
                      <div className="flex items-center gap-4">
@@ -155,7 +154,7 @@ export default function HomePage() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{quickStats.mistakesToReview}</p>
-                            <p className="text-sm text-muted-foreground">Mistakes to review</p>
+                            <p className="text-sm text-muted-foreground">{t('mistakesToReview')}</p>
                         </div>
                     </div>
                     </>
@@ -166,7 +165,7 @@ export default function HomePage() {
       
        {/* Features Grid */}
       <div className="mt-4">
-        <h2 className="text-3xl font-semibold mb-6">Explore Your Toolkit</h2>
+        <h2 className="text-3xl font-semibold mb-6">{t('tools')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {featureCards.map((feature, index) => (
             <Card key={index} className="flex flex-col hover:shadow-lg transition-shadow">
