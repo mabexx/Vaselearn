@@ -22,13 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { clientTypes } from '@/lib/client-types';
 
 
-interface UserPreferences {
-    notifications: {
-        push: boolean;
-        email: boolean;
-    }
-}
-
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
@@ -40,28 +33,6 @@ export default function SettingsPage() {
   const [clientType, setClientType] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
-  
-  const preferencesCollection = useMemoFirebase(() =>
-    user ? collection(firestore, 'users', user.uid, 'preferences') : null
-  , [firestore, user]);
-
-  const { data: prefData, isLoading: loadingPrefs } = useCollection<UserPreferences>(preferencesCollection);
-
-  const preferences = useMemo(() => {
-    const defaultPrefs = { notifications: { push: false, email: true } };
-    const userPrefs = prefData?.[0];
-    if (userPrefs) {
-      return {
-        ...defaultPrefs,
-        ...userPrefs,
-        notifications: {
-          ...defaultPrefs.notifications,
-          ...userPrefs.notifications,
-        },
-      };
-    }
-    return defaultPrefs;
-  }, [prefData]);
   
   useEffect(() => {
     const appUser = user as (typeof user & { clientType?: string });
@@ -103,27 +74,6 @@ export default function SettingsPage() {
       setIsSavingProfile(false);
     }
   };
-
-  const handleNotificationToggle = async (type: 'push' | 'email') => {
-    if (!user || !firestore) return;
-
-    const newPref = !preferences.notifications[type];
-    const userPrefsRef = doc(firestore, 'users', user.uid, 'preferences', 'user');
-
-    const updatedPrefs = {
-        notifications: {
-            ...preferences.notifications,
-            [type]: newPref
-        }
-    };
-    
-    await setDocumentNonBlocking(userPrefsRef, updatedPrefs, { merge: true });
-    
-    toast({
-        title: 'Preferences Updated',
-        description: `${type === 'email' ? 'Email' : 'Push'} notifications have been ${newPref ? 'enabled' : 'disabled'}.`
-    });
-  }
 
   const handlePasswordReset = async () => {
     if (!user?.email) return;
@@ -245,36 +195,6 @@ export default function SettingsPage() {
               Save Changes
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>Manage how you receive notifications.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="push-notifications">Push Notifications</Label>
-              <p className="text-sm text-muted-foreground">Receive updates on your device. (Coming soon)</p>
-            </div>
-            <Switch id="push-notifications" disabled/>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">Get weekly summaries and important alerts.</p>
-            </div>
-            <Switch 
-                id="email-notifications" 
-                checked={preferences.notifications.email} 
-                onCheckedChange={() => handleNotificationToggle('email')}
-                disabled={loadingPrefs}
-            />
-          </div>
         </CardContent>
       </Card>
 
