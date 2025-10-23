@@ -7,15 +7,8 @@ import { getApiKey, getModel } from '@/lib/aistudio';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
-
-interface Question {
-  type: 'multiple-choice' | 'true-false' | 'case-based';
-  question: string;
-  options?: string[];
-  answer?: string | boolean;
-  prompt?: string;
-  idealAnswer?: string;
-}
+import { QuizQuestion } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 export default function QuizComponentInner({ 
   topic, 
@@ -32,7 +25,7 @@ export default function QuizComponentInner({
   const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState<(string | boolean)[]>([]);
   const [score, setScore] = useState(0);
@@ -63,7 +56,7 @@ export default function QuizComponentInner({
     fetchSettingsAndGenerateQuestions();
   }, []);
 
-  const generateQuestions = async (apiKey: string, modelId: string): Promise<Question[]> => {
+  const generateQuestions = async (apiKey: string, modelId: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: modelId });
 
@@ -72,29 +65,29 @@ export default function QuizComponentInner({
       The target audience is learners associated with a "${clientType}".
       The quiz should be of the type "${questionType}".
 
-      Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple-choice", "true-false", or "case-based", and a "question" field.
-      - For "multiple-choice", include an "options" array and an "answer" field with the correct option.
-      - For "true-false", include an "answer" field that is a boolean.
-      - For "case-based", include a "prompt" field for the user to respond to and an "idealAnswer" field.
+      Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple_choice", "true_false", or "case_based", and a "question" field.
+      - For "multiple_choice", include an "options" array and an "answer" field with the correct option.
+      - For "true_false", include an "answer" field that is a boolean.
+      - For "case_based", include a "prompt" field for the user to respond to and an "answer" field.
 
       Example structure:
       [
         {
-          "type": "multiple-choice",
+          "type": "multiple_choice",
           "question": "What is the capital of France?",
           "options": ["London", "Berlin", "Paris", "Madrid"],
           "answer": "Paris"
         },
         {
-          "type": "true-false",
+          "type": "true_false",
           "question": "The earth is flat.",
           "answer": false
         },
         {
-          "type": "case-based",
+          "type": "case_based",
           "question": "A user is having trouble logging in. They have reset their password but still can't access their account.",
           "prompt": "What are the next steps to troubleshoot this issue?",
-          "idealAnswer": "Check if the user's account is locked, verify the email address they are using, and check for any recent security alerts."
+          "answer": "Check if the user's account is locked, verify the email address they are using, and check for any recent security alerts."
         }
       ]
 
@@ -118,16 +111,18 @@ export default function QuizComponentInner({
         }
       }
 
-      const parsed = JSON.parse(jsonString) as Question[];
+      const parsed = JSON.parse(jsonString) as QuizQuestion[];
       
       if (!Array.isArray(parsed) || parsed.length === 0) {
         throw new Error('Invalid question format');
       }
 
-      const validated = parsed.filter(q => 
-        q.question && q.answer && 
-        (questionType !== 'multiple-choice' || (q.options && q.options.length > 0))
-      );
+      const validated = parsed.filter(q => {
+        if (!q.question || q.answer === undefined) return false;
+        if (q.type === 'multiple_choice' && (!q.options || q.options.length === 0)) return false;
+        if (q.type === 'case_based' && !q.prompt) return false;
+        return true;
+      });
 
       return validated.slice(0, limit);
     } catch (err) {
@@ -156,7 +151,7 @@ export default function QuizComponentInner({
           </div>
           
           <div>
-            {questions[currentQuestion]?.type === 'multiple-choice' && (
+            {questions[currentQuestion]?.type === 'multiple_choice' && (
               <QuestionMultipleChoice
                 question={questions[currentQuestion]}
                 onAnswer={(answer) => {
@@ -167,7 +162,7 @@ export default function QuizComponentInner({
                 userAnswer={userAnswers[currentQuestion] as string}
               />
             )}
-            {questions[currentQuestion]?.type === 'true-false' && (
+            {questions[currentQuestion]?.type === 'true_false' && (
               <QuestionTrueFalse
                 question={questions[currentQuestion]}
                 onAnswer={(answer) => {
@@ -178,7 +173,7 @@ export default function QuizComponentInner({
                 userAnswer={userAnswers[currentQuestion] as boolean}
               />
             )}
-            {questions[currentQuestion]?.type === 'case-based' && (
+            {questions[currentQuestion]?.type === 'case_based' && (
               <QuestionCaseBased
                 question={questions[currentQuestion]}
                 onAnswer={(answer) => {
@@ -193,7 +188,7 @@ export default function QuizComponentInner({
 
           <button
             onClick={() => {
-              if (userAnswers[currentQuestion] === questions[currentQuestion].answer) {
+              if (String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer)) {
                 setScore(score + 1);
               }
               

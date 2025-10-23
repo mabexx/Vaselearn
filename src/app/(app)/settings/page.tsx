@@ -64,13 +64,14 @@ export default function SettingsPage() {
   }, [prefData]);
   
   useEffect(() => {
-    if (user?.displayName) {
-      const nameParts = user.displayName.split(' ');
+    const appUser = user as (typeof user & { clientType?: string });
+    if (appUser?.displayName) {
+      const nameParts = appUser.displayName.split(' ');
       setFirstName(nameParts[0] || '');
       setLastName(nameParts.slice(1).join(' ') || '');
     }
-    if (user?.clientType) {
-      setClientType(user.clientType);
+    if (appUser?.clientType) {
+      setClientType(appUser.clientType);
     }
   }, [user]);
 
