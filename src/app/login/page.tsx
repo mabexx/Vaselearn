@@ -59,7 +59,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center">
             <Logo className="h-10 w-10 mb-4 text-primary" />
-            <h1 className="text-3xl font-bold">Welcome Back to StudyFlow</h1>
+            <h1 className="text-3xl font-bold">Welcome Back to Vaselearn</h1>
             <p className="text-muted-foreground">Sign in to continue your learning journey</p>
         </div>
         <Card>
