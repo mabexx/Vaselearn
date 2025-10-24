@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
@@ -100,16 +101,32 @@ export default function ConnectPage() {
             </p>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          <div>
-            <a
-              href="https://aistudio.google.com/app/apikey"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Get your Google AI Studio API key
-            </a>
-          </div>
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="item-1">
+              <AccordionTrigger>How to Get Your Google AI Studio API Key</AccordionTrigger>
+              <AccordionContent>
+                <div className="prose prose-sm dark:prose-invert">
+                  <ol>
+                    <li>Go to 👉 <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer">https://aistudio.google.com</a></li>
+                    <li>Sign in with your Google (Gmail) account.</li>
+                    <li>In the top-left corner, click the three stacked lines (☰).</li>
+                    <li>From the menu, click “Get API Key.”</li>
+                    <li>Then click “Create API Key.”</li>
+                    <li>Type a name for your key (for example: My App Key).</li>
+                    <li>Create a project when asked — just choose a simple name.</li>
+                    <li>After it’s created, click the small paper icon (📄) to copy your key.</li>
+                    <li>Paste your key here (in the app or website that asks for it).</li>
+                  </ol>
+                  <p>✅ Done! You now have your own working Google AI Studio API Key.</p>
+                  <p><strong>⚠️ Important:</strong></p>
+                  <ul>
+                    <li>Do not share your key with anyone you don’t trust.</li>
+                    <li>Keep it safe — you can write it down or save it in your email drafts.</li>
+                  </ul>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
         <CardFooter>
           <Button onClick={handleConnect} disabled={loading || !apiKey}>
