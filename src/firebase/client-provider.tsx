@@ -9,6 +9,10 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
+  if (!firebaseApp) {
+    return <>{children}</>;
+  }
+
   return (
     <FirebaseProvider
       firebaseApp={firebaseApp}
