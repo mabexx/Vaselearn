@@ -9,8 +9,9 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  if (!firebaseApp) {
-    return <>{children}</>;
+  if (!firebaseApp || !auth || !firestore) {
+    // You can render a loading spinner here if you want
+    return null;
   }
 
   return (

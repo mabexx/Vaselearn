@@ -30,12 +30,12 @@ function PracticeContent() {
 
   // Set initial state from URL params or defaults
   const getInitialClient = () => {
-    const clientTypeFromUrl = searchParams.get('clientType');
+    const clientTypeFromUrl = searchParams ? searchParams.get('clientType') : null;
     return clients.find(c => c.client_type === clientTypeFromUrl) || clients[0] || null;
   };
   
   const getInitialTopic = (client: VLSClient | null) => {
-    const topicFromUrl = searchParams.get('topic');
+    const topicFromUrl = searchParams ? searchParams.get('topic') : null;
     return client?.topics.hardcoded.find(t => t.title === topicFromUrl) || client?.topics.hardcoded[0] || null;
   };
 
