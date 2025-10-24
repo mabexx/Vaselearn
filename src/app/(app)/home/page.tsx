@@ -11,6 +11,8 @@ import { collection, Timestamp } from 'firebase/firestore';
 import { PracticeSession, Mistake } from '@/lib/types';
 import { isSameDay, subDays, differenceInDays } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { T } from '@/components/T';
+import { useTranslation } from '@/context/TranslationContext';
 
 
 const featureCards = [
@@ -51,6 +53,25 @@ const featureCards = [
 export default function HomePage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { loadTranslations, language } = useTranslation();
+
+  React.useEffect(() => {
+    const keys = [
+      'Welcome back!',
+      'View Dashboard',
+      'Start a New Quiz',
+      'Quick Stats',
+      'Your immediate progress at a glance.',
+      'Day',
+      'Current study streak',
+      'Mistakes to review',
+      'Explore Your Toolkit',
+      ...featureCards.map(card => card.title),
+        ...featureCards.map(card => card.description),
+        ...featureCards.map(card => `Go to ${card.title}`),
+    ];
+    loadTranslations(keys);
+    }, [language, loadTranslations]);
 
   const practiceSessionsCollection = useMemoFirebase(() =>
     user ? collection(firestore, 'users', user.uid, 'practiceSessions') : null
@@ -113,21 +134,21 @@ export default function HomePage() {
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 p-8 rounded-xl bg-card border flex flex-col justify-center">
                 <h1 className="text-4xl md:text-5xl font-bold">
-                Welcome back!
+                <T>Welcome back!</T>
                 </h1>
                 <div className="mt-8 flex flex-wrap gap-4">
                 <Button asChild size="lg">
-                    <Link href="/dashboard">View Dashboard</Link>
+                    <Link href="/dashboard"><T>View Dashboard</T></Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                    <Link href="/practice">Start a New Quiz <ArrowRight className="ml-2 h-5 w-5" /></Link>
+                    <Link href="/practice"><T>Start a New Quiz</T> <ArrowRight className="ml-2 h-5 w-5" /></Link>
                 </Button>
                 </div>
             </div>
             <Card className="flex flex-col justify-center">
                 <CardHeader>
-                    <CardTitle>Quick Stats</CardTitle>
-                    <CardDescription>Your immediate progress at a glance.</CardDescription>
+                    <CardTitle><T>Quick Stats</T></CardTitle>
+                    <CardDescription><T>Your immediate progress at a glance.</T></CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {isLoading ? (
@@ -142,8 +163,8 @@ export default function HomePage() {
                             <Repeat className="h-6 w-6 text-indigo-500" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{quickStats.streak} Day{quickStats.streak !== 1 && 's'}</p>
-                            <p className="text-sm text-muted-foreground">Current study streak</p>
+                            <p className="text-2xl font-bold">{quickStats.streak} <T>Day</T>{quickStats.streak !== 1 && 's'}</p>
+                            <p className="text-sm text-muted-foreground"><T>Current study streak</T></p>
                         </div>
                     </div>
                      <div className="flex items-center gap-4">
@@ -152,7 +173,7 @@ export default function HomePage() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{quickStats.mistakesToReview}</p>
-                            <p className="text-sm text-muted-foreground">Mistakes to review</p>
+                            <p className="text-sm text-muted-foreground"><T>Mistakes to review</T></p>
                         </div>
                     </div>
                     </>
@@ -163,7 +184,7 @@ export default function HomePage() {
       
        {/* Features Grid */}
       <div className="mt-4">
-        <h2 className="text-3xl font-semibold mb-6">Explore Your Toolkit</h2>
+        <h2 className="text-3xl font-semibold mb-6"><T>Explore Your Toolkit</T></h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {featureCards.map((feature, index) => (
             <Card key={index} className="flex flex-col hover:shadow-lg transition-shadow">
@@ -172,15 +193,15 @@ export default function HomePage() {
                         <div className={`p-3 rounded-full ${feature.bgColor} dark:bg-zinc-800`}>
                              <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
                         </div>
-                        <CardTitle>{feature.title}</CardTitle>
+                        <CardTitle><T>{feature.title}</T></CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                  <CardDescription>{feature.description}</CardDescription>
+                  <CardDescription><T>{feature.description}</T></CardDescription>
                 </CardContent>
                 <CardContent>
                    <Button asChild variant="secondary" className="w-full">
-                        <Link href={feature.href}>Go to {feature.title} <ArrowRight className="ml-auto h-4 w-4" /></Link>
+                        <Link href={feature.href}><T>{`Go to ${feature.title}`}</T> <ArrowRight className="ml-auto h-4 w-4" /></Link>
                     </Button>
                 </CardContent>
             </Card>

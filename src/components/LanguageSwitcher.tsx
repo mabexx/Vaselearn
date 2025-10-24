@@ -1,43 +1,34 @@
-"use client";
 
-import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
+'use client';
+
+import React from 'react';
+import { useTranslation } from '@/context/TranslationContext';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Globe } from "lucide-react";
+} from '@/components/ui/dropdown-menu';
+import { Globe } from 'lucide-react';
 
-export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
-
-  const onSelectChange = (lng: string) => {
-    i18n.changeLanguage(lng);
-  };
+export const LanguageSwitcher = () => {
+  const { setLanguage } = useTranslation();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Globe className="h-5 w-5" />
+        <Button variant="outline" size="icon" data-testid="language-switcher">
+          <Globe className="h-[1.2rem] w-[1.2rem]" />
+          <span className="sr-only">Change language</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onSelectChange("en")}>
-          English
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onSelectChange("lv")}>
-          Latviešu
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onSelectChange("lt")}>
-          Lietuvių
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onSelectChange("et")}>
-          Eesti
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLanguage('en')}>English</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLanguage('lv')}>Latvian</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLanguage('lt')}>Lithuanian</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLanguage('et')}>Estonian</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+};
