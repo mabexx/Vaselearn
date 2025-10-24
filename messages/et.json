@@ -1,0 +1,21 @@
+{
+  "Header": {
+    "title": "Vaselearn",
+    "logout": "Logi välja"
+  },
+  "Index": {
+    "title": "Tere tulemast Vaselearni",
+    "subtitle": "Teie tehisintellektil põhinev õppeassistent."
+  },
+  "Navigation": {
+    "home": "Kodu",
+    "dashboard": "Armatuurlaud",
+    "notes": "Märkmed",
+    "practice": "Praktika",
+    "flashcards": "Mälukaardid",
+    "goals": "Eesmärgid",
+    "mistake-vault": "Vigade varahoidla",
+    "support": "Tugi",
+    "settings": "Seaded"
+  }
+}

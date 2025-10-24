@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { BookOpen, Home, LayoutDashboard, LogOut, Users, ShieldAlert, Settings, Dumbbell, Trophy, Menu, Compass, Goal, Layers, Sparkles, LifeBuoy } from 'lucide-react';
 import Avvvatars from 'avvvatars-react';
 import { getAuth } from 'firebase/auth';
@@ -14,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/icons';
 import { FirebaseClientProvider, useUser } from '@/firebase';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const navItems = [
   { href: '/home', icon: Home, label: 'Home' },
@@ -35,6 +37,7 @@ const mobileNavItems = [
 ]
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
+  const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
@@ -60,10 +63,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                   )}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
+                  <span>{t(`Navigation.${item.label.toLowerCase().replace(' ', '-')}`)}</span>
                 </Link>
               </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right">{t(`Navigation.${item.label.toLowerCase().replace(' ', '-')}`)}</TooltipContent>
             </Tooltip>
           );
         })}
@@ -110,6 +113,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex-1">
               <h1 className="text-lg font-semibold sm:text-2xl">Hello, {user?.displayName?.split(' ')[0] || 'Student'}!</h1>
             </div>
+            <LanguageSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
@@ -128,7 +132,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
+                  <span>{t('Header.logout')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -153,7 +157,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                     )}
                 >
                     <item.icon className="h-5 w-5" />
-                    <span>{item.label}</span>
+                    <span>{t(`Navigation.${item.label.toLowerCase().replace(' ', '-')}`)}</span>
                 </Link>
             )
         })}
