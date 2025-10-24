@@ -8,7 +8,7 @@ import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (typeof window !== 'undefined' && !getApps().length) {
+  if (!getApps().length) {
     // Important! initializeApp() is called without any arguments because Firebase App Hosting
     // integrates with the initializeApp() function to provide the environment variables needed to
     // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
@@ -30,16 +30,7 @@ export function initializeFirebase() {
   }
 
   // If already initialized, return the SDKs with the already initialized App
-  if (getApps().length) {
-    return getSdks(getApp());
-  }
-
-  // Add a fallback for the server-side
-  return {
-    firebaseApp: null,
-    auth: null,
-    firestore: null
-  };
+  return getSdks(getApp());
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
