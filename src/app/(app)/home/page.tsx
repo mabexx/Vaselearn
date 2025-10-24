@@ -113,11 +113,8 @@ export default function HomePage() {
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 p-8 rounded-xl bg-card border flex flex-col justify-center">
                 <h1 className="text-4xl md:text-5xl font-bold">
-                Welcome back, {user?.displayName?.split(' ')[0] || 'Student'}!
+                Welcome back!
                 </h1>
-                <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-                    Ready to supercharge your learning? Dive into your personalized dashboard or tackle a new quiz.
-                </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                 <Button asChild size="lg">
                     <Link href="/dashboard">View Dashboard</Link>

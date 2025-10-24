@@ -30,7 +30,7 @@ export default function PrivacyPage() {
             <li>Personalize the service, for instance, by generating personalized quizzes based on your past performance.</li>
             <li>Communicate with you, including sending you service-related announcements.</li>
             <li>Monitor and analyze trends, usage, and activities in connection with our services.</li>
-            <li>Detect, investigate and prevent fraudulent transactions and other illegal activities and protect the rights and property of StudyFlow and others.</li>
+            <li>Detect, investigate and prevent fraudulent transactions and other illegal activities and protect the rights and property of Vaselearn and others.</li>
           </ul>
 
           <h2>3. How We Share Information</h2>

@@ -77,7 +77,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center gap-2 border-b px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <Logo className="h-6 w-6 text-primary" />
-            <span className="text-xl">StudyFlow</span>
+            <span className="text-xl">Vaselearn</span>
           </Link>
         </div>
         <div className="flex-1 overflow-auto py-4 px-4">
@@ -98,7 +98,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 <SheetHeader className="p-4 border-b">
                     <SheetTitle className="flex items-center gap-2">
                       <Logo className="h-6 w-6 text-primary" />
-                      <span className="text-xl font-semibold">StudyFlow</span>
+                      <span className="text-xl font-semibold">Vaselearn</span>
                     </SheetTitle>
                     <SheetDescription className="sr-only">Main navigation links for the application.</SheetDescription>
                   </SheetHeader>

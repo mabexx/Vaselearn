@@ -94,7 +94,7 @@ export default function SettingsPage() {
             exportData[collectionName] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }
         
-        downloadJson(exportData, `studyflow-export-${user.uid}.json`);
+        downloadJson(exportData, `vaselearn-export-${user.uid}.json`);
 
      } catch(error) {
         console.error("Error exporting data:", error);
