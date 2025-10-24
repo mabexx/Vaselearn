@@ -1,41 +1,95 @@
 // components/LanguageSelector.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Script from 'next/script';
 
+interface Language {
+  value: string;
+  label: string;
+}
+
 export default function LanguageSelector() {
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+
   useEffect(() => {
     const googleTranslateElementInit = () => {
       new (window as any).google.translate.TranslateElement(
         {
           pageLanguage: 'en',
-          includedLanguages: 'en,et,lv,lt,es,fr,de,ja,zh-CN,pt,ru,ar,ko,it,hi,tr,pl,nl,sv',
-          autoDisplay: false
+          autoDisplay: false,
         },
         'google_translate_element'
       );
+
+      // Use a MutationObserver to detect when the Google Translate widget has been initialized
+      const observer = new MutationObserver(() => {
+        const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+        if (combo && combo.options.length > 1) {
+          const allLanguages: Language[] = Array.from(combo.options).map(option => ({
+            value: option.value,
+            label: option.text,
+          }));
+
+          const priorityCodes = ['en', 'et', 'lv', 'lt'];
+
+          const priorityLanguages = priorityCodes.map(code =>
+            allLanguages.find(lang => lang.value === code)
+          ).filter((lang): lang is Language => !!lang);
+
+          const otherLanguages = allLanguages
+            .filter(lang => !priorityCodes.includes(lang.value))
+            .sort((a, b) => a.label.localeCompare(b.label));
+
+          setLanguages([...priorityLanguages, ...otherLanguages]);
+          observer.disconnect(); // Stop observing once we have the languages
+        }
+      });
+
+      const targetNode = document.getElementById('google_translate_element');
+      if (targetNode) {
+        observer.observe(targetNode, {
+          childList: true,
+          subtree: true,
+        });
+      }
     };
 
-    (window as any).googleTranslateElementInit = googleTranslateElementInit;
+    if (!(window as any).googleTranslateElementInit) {
+        (window as any).googleTranslateElementInit = googleTranslateElementInit;
+    }
 
-    // Hide the annoying Google banner
+
+    // Hide the Google Translate banner and the original dropdown
     const style = document.createElement('style');
     style.innerHTML = `
       .goog-te-banner-frame { display: none !important; }
       body { top: 0 !important; }
+      #google_translate_element { display: none !important; }
       .skiptranslate { display: none !important; }
     `;
     document.head.appendChild(style);
   }, []);
 
   const changeLanguage = (lang: string) => {
+    setSelectedLanguage(lang);
     const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
     if (select) {
       select.value = lang;
       select.dispatchEvent(new Event('change'));
     }
   };
+
+  // Provide a default set of languages to display while the full list is loading
+  const defaultLanguages: Language[] = [
+      { value: 'en', label: 'English' },
+      { value: 'et', label: 'Eesti' },
+      { value: 'lv', label: 'Latviešu' },
+      { value: 'lt', label: 'Lietuvių' },
+  ];
+
+  const languagesToRender = languages.length > 0 ? languages : defaultLanguages;
 
   return (
     <>
@@ -47,22 +101,15 @@ export default function LanguageSelector() {
       <div id="google_translate_element" style={{ display: 'none' }}></div>
 
       <select
+        value={selectedLanguage}
         onChange={(e) => changeLanguage(e.target.value)}
         className="border rounded px-3 py-2 bg-white"
       >
-        <option value="en">🌐 English</option>
-        <option value="et">🇪🇪 Eesti</option>
-        <option value="lv">🇱🇻 Latviešu</option>
-        <option value="lt">🇱🇹 Lietuvių</option>
-        <option value="es">🇪🇸 Español</option>
-        <option value="fr">🇫🇷 Français</option>
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="ja">🇯🇵 日本語</option>
-        <option value="zh-CN">🇨🇳 中文</option>
-        <option value="pt">🇵🇹 Português</option>
-        <option value="ru">🇷🇺 Русский</option>
-        <option value="ar">🇸🇦 العربية</option>
-        <option value="ko">🇰🇷 한국어</option>
+        {languagesToRender.map(lang => (
+          <option key={lang.value} value={lang.value}>
+            {lang.label}
+          </option>
+        ))}
       </select>
     </>
   );
