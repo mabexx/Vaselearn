@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,6 +15,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/icons';
 import { FirebaseClientProvider, useUser } from '@/firebase';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { T } from '@/components/T';
+import { useTranslation } from '@/context/TranslationContext';
 
 const navItems = [
   { href: '/home', icon: Home, label: 'Home' },
@@ -38,6 +42,20 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const { loadTranslations, language } = useTranslation();
+
+  React.useEffect(() => {
+    const keys = [
+      ...navItems.map(item => item.label),
+      ...mobileNavItems.map(item => item.label),
+      'Hello, {name}!',
+      'My Account',
+      'Settings',
+      'Support',
+      'Logout',
+    ];
+    loadTranslations(keys);
+  }, [language, loadTranslations]);
 
   const handleLogout = async () => {
     await getAuth().signOut();
@@ -60,10 +78,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                   )}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
+                  <span><T>{item.label}</T></span>
                 </Link>
               </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right"><T>{item.label}</T></TooltipContent>
             </Tooltip>
           );
         })}
@@ -108,8 +126,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               </SheetContent>
             </Sheet>
             <div className="flex-1">
-              <h1 className="text-lg font-semibold sm:text-2xl">Hello, {user?.displayName?.split(' ')[0] || 'Student'}!</h1>
+              <h1 className="text-lg font-semibold sm:text-2xl"><T>{`Hello, ${user?.displayName?.split(' ')[0] || 'Student'}!`}</T></h1>
             </div>
+            <LanguageSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
@@ -117,18 +136,18 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel><T>My Account</T></DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/settings">Settings</Link>
+                  <Link href="/settings"><T>Settings</T></Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/support">Support</Link>
+                  <Link href="/support"><T>Support</T></Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
+                  <span><T>Logout</T></span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -153,7 +172,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                     )}
                 >
                     <item.icon className="h-5 w-5" />
-                    <span>{item.label}</span>
+                    <span><T>{item.label}</T></span>
                 </Link>
             )
         })}

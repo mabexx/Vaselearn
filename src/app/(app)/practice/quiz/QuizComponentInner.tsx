@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
 import { QuizQuestion } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/context/TranslationContext';
 
 export default function QuizComponentInner({ 
   topic, 
@@ -32,6 +34,7 @@ export default function QuizComponentInner({
   const [isComplete, setIsComplete] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const router = useRouter();
+  const { language } = useTranslation();
 
   useEffect(() => {
     const fetchSettingsAndGenerateQuestions = async () => {
@@ -47,16 +50,16 @@ export default function QuizComponentInner({
       setApiKey(key);
       setModelId(model);
       setLoadingMessage('Generating quiz questions...');
-      const generated = await generateQuestions(key, model);
+      const generated = await generateQuestions(key, model, language);
       setQuestions(generated);
       setLoading(false);
       setLoadingMessage('');
     };
 
     fetchSettingsAndGenerateQuestions();
-  }, []);
+  }, [language]);
 
-  const generateQuestions = async (apiKey: string, modelId: string): Promise<QuizQuestion[]> => {
+  const generateQuestions = async (apiKey: string, modelId: string, language: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: modelId });
 
@@ -64,6 +67,7 @@ export default function QuizComponentInner({
       Generate exactly ${limit} quiz questions about the topic "${topic}".
       The target audience is learners associated with a "${clientType}".
       The quiz should be of the type "${questionType}".
+      The language of the quiz must be ${language}.
 
       Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple_choice", "true_false", or "case_based", and a "question" field.
       - For "multiple_choice", include an "options" array and an "answer" field with the correct option.
