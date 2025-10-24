@@ -18,14 +18,8 @@ import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { downloadJson } from '@/lib/utils';
 import { PracticeSession, Note, Mistake, CustomGoal } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-
-interface UserPreferences {
-    notifications: {
-        push: boolean;
-        email: boolean;
-    }
-}
 
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
@@ -33,76 +27,14 @@ export default function SettingsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   
-  const preferencesCollection = useMemoFirebase(() =>
-    user ? collection(firestore, 'users', user.uid, 'preferences') : null
-  , [firestore, user]);
-
-  const { data: prefData, isLoading: loadingPrefs } = useCollection<UserPreferences>(preferencesCollection);
-
-  const preferences = useMemo(() => prefData?.[0] || { notifications: { push: false, email: true } }, [prefData]);
-  
   useEffect(() => {
-    if (user?.displayName) {
-      const nameParts = user.displayName.split(' ');
-      setFirstName(nameParts[0] || '');
-      setLastName(nameParts.slice(1).join(' ') || '');
+    const appUser = user as (typeof user & { clientType?: string });
+    if (appUser?.displayName) {
+      const nameParts = appUser.displayName.split(' ');
     }
   }, [user]);
-
-  const handleSaveChanges = async () => {
-    if (!user || !auth.currentUser || !firestore) return;
-
-    setIsSavingProfile(true);
-    const newDisplayName = `${firstName} ${lastName}`.trim();
-
-    try {
-      await updateProfile(auth.currentUser, { displayName: newDisplayName });
-
-      const userProfileRef = doc(firestore, 'users', user.uid);
-      await setDocumentNonBlocking(userProfileRef, { name: newDisplayName }, { merge: true });
-
-      toast({
-        title: 'Success!',
-        description: 'Your profile has been updated.',
-      });
-
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update your profile. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  const handleNotificationToggle = async (type: 'push' | 'email') => {
-    if (!user || !firestore) return;
-
-    const newPref = !preferences.notifications[type];
-    const userPrefsRef = doc(firestore, 'users', user.uid, 'preferences', 'user');
-
-    const updatedPrefs = {
-        notifications: {
-            ...preferences.notifications,
-            [type]: newPref
-        }
-    };
-    
-    await setDocumentNonBlocking(userPrefsRef, updatedPrefs, { merge: true });
-    
-    toast({
-        title: 'Preferences Updated',
-        description: `${type === 'email' ? 'Email' : 'Push'} notifications have been ${newPref ? 'enabled' : 'disabled'}.`
-    });
-  }
 
   const handlePasswordReset = async () => {
     if (!user?.email) return;
@@ -176,69 +108,13 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your personal information.</CardDescription>
+          <CardDescription>Your personal information.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); handleSaveChanges(); }}>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first-name">First Name</Label>
-                <Input 
-                  id="first-name" 
-                  value={firstName} 
-                  onChange={(e) => setFirstName(e.target.value)} 
-                  disabled={isUserLoading || isSavingProfile}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last-name">Last Name</Label>
-                <Input 
-                  id="last-name" 
-                  value={lastName} 
-                  onChange={(e) => setLastName(e.target.value)} 
-                  disabled={isUserLoading || isSavingProfile}
-                />
-              </div>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={user?.email || ''} disabled />
             </div>
-            <Button type="submit" disabled={isSavingProfile} className="w-fit">
-              {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>Manage how you receive notifications.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="push-notifications">Push Notifications</Label>
-              <p className="text-sm text-muted-foreground">Receive updates on your device. (Coming soon)</p>
-            </div>
-            <Switch id="push-notifications" disabled/>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">Get weekly summaries and important alerts.</p>
-            </div>
-            <Switch 
-                id="email-notifications" 
-                checked={preferences.notifications.email} 
-                onCheckedChange={() => handleNotificationToggle('email')}
-                disabled={loadingPrefs}
-            />
-          </div>
         </CardContent>
       </Card>
 

@@ -1,6 +1,8 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 import QuizComponentInner from './QuizComponentInner';
 
