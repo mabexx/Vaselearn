@@ -48,7 +48,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     <nav className="grid items-start gap-2">
       <TooltipProvider>
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = pathname ? pathname.startsWith(item.href) : false;
           return (
             <Tooltip key={item.href}>
               <TooltipTrigger asChild>
@@ -142,7 +142,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
        {/* Mobile Bottom Navigation */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 border-t bg-background grid grid-cols-4 items-center justify-around">
         {mobileNavItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname ? pathname === item.href : false;
             return (
                 <Link
                     key={item.href}

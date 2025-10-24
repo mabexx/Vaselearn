@@ -9,10 +9,10 @@ import QuizComponentInner from './QuizComponentInner';
 function QuizContent() {
   const searchParams = useSearchParams();
 
-  const topic = searchParams.get('topic') || 'default-topic';
-  const limit = Number(searchParams.get('limit')) || 5;
-  const clientType = searchParams.get('clientType') || 'default';
-  const questionType = searchParams.get('questionType') || 'mixed';
+  const topic = searchParams ? searchParams.get('topic') || 'default-topic' : 'default-topic';
+  const limit = searchParams ? Number(searchParams.get('limit')) || 5 : 5;
+  const clientType = searchParams ? searchParams.get('clientType') || 'default' : 'default';
+  const questionType = searchParams ? searchParams.get('questionType') || 'mixed' : 'mixed';
 
   return (
     <QuizComponentInner
