@@ -7,6 +7,7 @@ import { BookOpen, Home, LayoutDashboard, LogOut, Users, ShieldAlert, Settings, 
 import Avvvatars from 'avvvatars-react';
 import { getAuth } from 'firebase/auth';
 
+import LanguageSelector from '@/components/LanguageSelector';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -110,6 +111,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex-1">
               <h1 className="text-lg font-semibold sm:text-2xl">Hello, {user?.displayName?.split(' ')[0] || 'Student'}!</h1>
             </div>
+            <LanguageSelector />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
