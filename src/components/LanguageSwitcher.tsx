@@ -1,9 +1,6 @@
 "use client";
 
-import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,20 +11,16 @@ import {
 import { Globe } from "lucide-react";
 
 export function LanguageSwitcher() {
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-  const localActive = useLocale();
+  const { i18n } = useTranslation();
 
-  const onSelectChange = (nextLocale: string) => {
-    startTransition(() => {
-      router.replace(`/${nextLocale}`);
-    });
+  const onSelectChange = (lng: string) => {
+    i18n.changeLanguage(lng);
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={isPending}>
+        <Button variant="ghost" size="icon">
           <Globe className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>

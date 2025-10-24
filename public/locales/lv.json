@@ -1,0 +1,19 @@
+{
+  "translation": {
+    "Header": {
+      "title": "Vaselearn",
+      "logout": "Izrakstīties"
+    },
+    "Navigation": {
+      "home": "Mājas",
+      "dashboard": "Informācijas panelis",
+      "notes": "Piezīmes",
+      "practice": "Prakse",
+      "flashcards": "Zibatmiņas kartes",
+      "goals": "Mērķi",
+      "mistake-vault": "Kļūdu glabātuve",
+      "support": "Atbalsts",
+      "settings": "Iestatījumi"
+    }
+  }
+}

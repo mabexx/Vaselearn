@@ -1,7 +1,3 @@
-import withNextIntl from 'next-intl/plugin';
-
-const withNextIntlConfig = withNextIntl('./src/i18n.ts');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
@@ -31,4 +27,4 @@ const nextConfig = {
   },
 };
 
-export default withNextIntlConfig(nextConfig);
+export default nextConfig;

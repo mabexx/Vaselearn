@@ -1,0 +1,19 @@
+{
+  "translation": {
+    "Header": {
+      "title": "Vaselearn",
+      "logout": "Atsijungti"
+    },
+    "Navigation": {
+      "home": "Namai",
+      "dashboard": "Prietaisų skydelis",
+      "notes": "Pastabos",
+      "practice": "Praktika",
+      "flashcards": "Kortelės",
+      "goals": "Tikslai",
+      "mistake-vault": "Klaidų saugykla",
+      "support": "Pagalba",
+      "settings": "Nustatymai"
+    }
+  }
+}

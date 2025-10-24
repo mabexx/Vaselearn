@@ -1,0 +1,19 @@
+{
+  "translation": {
+    "Header": {
+      "title": "Vaselearn",
+      "logout": "Logi välja"
+    },
+    "Navigation": {
+      "home": "Kodu",
+      "dashboard": "Armatuurlaud",
+      "notes": "Märkmed",
+      "practice": "Praktika",
+      "flashcards": "Mälukaardid",
+      "goals": "Eesmärgid",
+      "mistake-vault": "Vigade varahoidla",
+      "support": "Tugi",
+      "settings": "Seaded"
+    }
+  }
+}

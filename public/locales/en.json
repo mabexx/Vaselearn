@@ -1,0 +1,19 @@
+{
+  "translation": {
+    "Header": {
+      "title": "Vaselearn",
+      "logout": "Logout"
+    },
+    "Navigation": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "notes": "Notes",
+      "practice": "Practice",
+      "flashcards": "Flashcards",
+      "goals": "Goals",
+      "mistake-vault": "Mistake Vault",
+      "support": "Support",
+      "settings": "Settings"
+    }
+  }
+}

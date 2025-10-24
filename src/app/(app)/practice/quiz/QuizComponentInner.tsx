@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getApiKey, getModel } from '@/lib/aistudio';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
@@ -33,7 +33,7 @@ export default function QuizComponentInner({
   const [isComplete, setIsComplete] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const router = useRouter();
-  const locale = useLocale();
+  const { i18n } = useTranslation();
 
   useEffect(() => {
     const fetchSettingsAndGenerateQuestions = async () => {
@@ -66,7 +66,7 @@ export default function QuizComponentInner({
       Generate exactly ${limit} quiz questions about the topic "${topic}".
       The target audience is learners associated with a "${clientType}".
       The quiz should be of the type "${questionType}".
-      The language of the quiz must be ${locale}.
+      The language of the quiz must be ${i18n.language}.
 
       Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple_choice", "true_false", or "case_based", and a "question" field.
       - For "multiple_choice", include an "options" array and an "answer" field with the correct option.

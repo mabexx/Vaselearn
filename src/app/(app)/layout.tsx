@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Home, LayoutDashboard, LogOut, Users, ShieldAlert, Settings, Dumbbell, Trophy, Menu, Compass, Goal, Layers, Sparkles, LifeBuoy } from 'lucide-react';
 import Avvvatars from 'avvvatars-react';
 import { getAuth } from 'firebase/auth';
@@ -37,7 +37,7 @@ const mobileNavItems = [
 ]
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const t = useTranslations();
+  const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
