@@ -23,10 +23,11 @@ export default function LanguageSelector() {
         'google_translate_element'
       );
 
-      // Use a MutationObserver to detect when the Google Translate widget has been initialized
       const observer = new MutationObserver(() => {
         const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
         if (combo && combo.options.length > 1) {
+          observer.disconnect(); // Stop observing once we have the languages
+
           const allLanguages: Language[] = Array.from(combo.options).map(option => ({
             value: option.value,
             label: option.text,
@@ -34,16 +35,21 @@ export default function LanguageSelector() {
 
           const priorityCodes = ['en', 'et', 'lv', 'lt'];
 
-          const priorityLanguages = priorityCodes.map(code =>
-            allLanguages.find(lang => lang.value === code)
-          ).filter((lang): lang is Language => !!lang);
+          // Find the languages that Google provides from our priority list
+          const priorityLanguages = priorityCodes
+            .map(code => allLanguages.find(lang => lang.value === code))
+            .filter((lang): lang is Language => !!lang);
+
+          // If English is not in the list from Google, add it manually to the top
+          if (!priorityLanguages.some(lang => lang.value === 'en')) {
+            priorityLanguages.unshift({ value: 'en', label: 'English' });
+          }
 
           const otherLanguages = allLanguages
             .filter(lang => !priorityCodes.includes(lang.value))
             .sort((a, b) => a.label.localeCompare(b.label));
 
           setLanguages([...priorityLanguages, ...otherLanguages]);
-          observer.disconnect(); // Stop observing once we have the languages
         }
       });
 
@@ -60,8 +66,6 @@ export default function LanguageSelector() {
         (window as any).googleTranslateElementInit = googleTranslateElementInit;
     }
 
-
-    // Hide the Google Translate banner and the original dropdown
     const style = document.createElement('style');
     style.innerHTML = `
       .goog-te-banner-frame { display: none !important; }
@@ -74,14 +78,22 @@ export default function LanguageSelector() {
 
   const changeLanguage = (lang: string) => {
     setSelectedLanguage(lang);
-    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-    if (select) {
-      select.value = lang;
-      select.dispatchEvent(new Event('change'));
+    const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    if (combo) {
+      // If the user selects "English" (or the page's original language),
+      // we need a way to revert the translation. Google's widget does this
+      // by clearing cookies. The simplest way to trigger this is to reload.
+      if (lang === 'en') {
+        // A more sophisticated approach might involve manipulating cookies,
+        // but a reload is robust and simple.
+        window.location.reload();
+        return;
+      }
+      combo.value = lang;
+      combo.dispatchEvent(new Event('change'));
     }
   };
 
-  // Provide a default set of languages to display while the full list is loading
   const defaultLanguages: Language[] = [
       { value: 'en', label: 'English' },
       { value: 'et', label: 'Eesti' },
