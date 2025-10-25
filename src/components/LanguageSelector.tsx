@@ -9,6 +9,15 @@ interface Language {
   label: string;
 }
 
+// Function to clear the Google Translate cookie
+const clearGoogleTranslateCookie = () => {
+    // Setting the expiration date to the past removes the cookie
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    // It might be set on the specific domain, so we clear it there too
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+};
+
+
 export default function LanguageSelector() {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -35,12 +44,10 @@ export default function LanguageSelector() {
 
           const priorityCodes = ['en', 'et', 'lv', 'lt'];
 
-          // Find the languages that Google provides from our priority list
           const priorityLanguages = priorityCodes
             .map(code => allLanguages.find(lang => lang.value === code))
             .filter((lang): lang is Language => !!lang);
 
-          // If English is not in the list from Google, add it manually to the top
           if (!priorityLanguages.some(lang => lang.value === 'en')) {
             priorityLanguages.unshift({ value: 'en', label: 'English' });
           }
@@ -80,12 +87,8 @@ export default function LanguageSelector() {
     setSelectedLanguage(lang);
     const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
     if (combo) {
-      // If the user selects "English" (or the page's original language),
-      // we need a way to revert the translation. Google's widget does this
-      // by clearing cookies. The simplest way to trigger this is to reload.
       if (lang === 'en') {
-        // A more sophisticated approach might involve manipulating cookies,
-        // but a reload is robust and simple.
+        clearGoogleTranslateCookie();
         window.location.reload();
         return;
       }
