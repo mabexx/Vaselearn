@@ -135,7 +135,7 @@ export default function LanguageSelector() {
             <span className="sr-only">Select Language</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="max-h-96 overflow-y-auto">
           {languagesToRender.map(lang => (
             <DropdownMenuItem key={lang.value} onSelect={() => changeLanguage(lang.value)}>
               {lang.label}
