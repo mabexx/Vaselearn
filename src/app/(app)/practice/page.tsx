@@ -117,7 +117,17 @@ export default function PracticePage() {
               min="2"
               max="30"
               value={numQuestions}
-              onChange={(e) => setNumQuestions(parseInt(e.target.value))}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '') {
+                  setNumQuestions(0);
+                } else {
+                  const num = parseInt(value);
+                  if (!isNaN(num)) {
+                    setNumQuestions(num);
+                  }
+                }
+              }}
             />
           </div>
 
