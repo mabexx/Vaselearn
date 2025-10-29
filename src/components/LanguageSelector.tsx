@@ -3,6 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import Script from 'next/script';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Globe } from 'lucide-react';
 
 interface Language {
   value: string;
@@ -115,17 +123,20 @@ export default function LanguageSelector() {
 
       <div id="google_translate_element" style={{ display: 'none' }}></div>
 
-      <select
-        value={selectedLanguage}
-        onChange={(e) => changeLanguage(e.target.value)}
-        className="border rounded px-3 py-2 bg-white"
-      >
-        {languagesToRender.map(lang => (
-          <option key={lang.value} value={lang.value}>
-            {lang.label}
-          </option>
-        ))}
-      </select>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon">
+            <Globe className="h-[1.2rem] w-[1.2rem]" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {languagesToRender.map(lang => (
+            <DropdownMenuItem key={lang.value} onSelect={() => changeLanguage(lang.value)}>
+              {lang.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
 }
