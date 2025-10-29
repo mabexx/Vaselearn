@@ -90,11 +90,28 @@ export interface QuizFeedback {
 }
 
 export interface CustomGoal {
-    id: string;
+    id:string;
     userId: string;
     text: string;
     isCompleted: boolean;
     createdAt: Timestamp;
+}
+
+export interface FlashcardCollection {
+    id: string;
+    name: string;
+    topic: string;
+    createdAt: Timestamp;
+    userId: string;
+}
+
+export interface CustomFlashcard {
+    id: string;
+    question: string;
+    answer: string;
+    collectionId: string;
+    createdAt: Timestamp;
+    userId: string;
 }
 
 
