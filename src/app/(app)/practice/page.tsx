@@ -12,8 +12,8 @@ import { subjects } from '@/lib/subjects';
 import { difficulties } from '@/lib/difficulties';
 
 export default function PracticePage() {
-  const [customQuestion, setCustomQuestion] = useState('');
-  const [subject, setSubject] = useState(subjects[0].value);
+  const [topic, setTopic] = useState('');
+  const [subject, setSubject] = useState('');
   const [questionType, setQuestionType] = useState('multiple-choice');
   const [difficulty, setDifficulty] = useState(difficulties[2].value);
   const [numQuestions, setNumQuestions] = useState(5);
@@ -22,12 +22,15 @@ export default function PracticePage() {
 
   const handleStartQuiz = () => {
     const params = new URLSearchParams({
-      topic: customQuestion || subject,
+      topic: topic,
       questionType,
       difficulty,
       limit: numQuestions.toString(),
       model,
     });
+    if (subject) {
+      params.set('subject', subject);
+    }
     router.push(`/practice/quiz?${params.toString()}`);
   };
 
@@ -40,13 +43,14 @@ export default function PracticePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="customQuestion">Custom Question (optional)</Label>
+            <Label htmlFor="topic">Topic</Label>
             <Input
-              id="customQuestion"
+              id="topic"
               placeholder="Enter a specific topic, e.g., 'The Battle of Hastings'"
-              value={customQuestion}
-              onChange={(e) => setCustomQuestion(e.target.value)}
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
               list="subject-suggestions"
+              required
             />
             <datalist id="subject-suggestions">
               {subjects.map((s) => (
@@ -58,12 +62,13 @@ export default function PracticePage() {
           <hr />
 
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="subject">Subject (optional)</Label>
             <Select value={subject} onValueChange={setSubject}>
               <SelectTrigger id="subject">
                 <SelectValue placeholder="Select a subject" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">None</SelectItem>
                 {subjects.map((s) => (
                   <SelectItem key={s.value} value={s.value}>
                     {s.label}
@@ -130,7 +135,7 @@ export default function PracticePage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleStartQuiz} disabled={!customQuestion && !subject}>
+          <Button onClick={handleStartQuiz} disabled={!topic}>
             Start Quiz
           </Button>
         </CardFooter>

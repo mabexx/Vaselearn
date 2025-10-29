@@ -5,4 +5,5 @@ export const subjects = [
   { value: 'biology', label: 'Biology' },
   { value: 'geography', label: 'Geography' },
   { value: 'history', label: 'History' },
+  { value: 'maths', label: 'Maths' },
 ];

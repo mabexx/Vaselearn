@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { downloadJson } from '@/lib/utils';
 import { PracticeSession, Note, Mistake, CustomGoal } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Link from 'next/link';
 
 
 export default function SettingsPage() {
@@ -115,6 +116,20 @@ export default function SettingsPage() {
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={user?.email || ''} disabled />
             </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>API Settings</CardTitle>
+          <CardDescription>Manage your API keys and integrations.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/settings/api-key">
+            <Button variant="outline">Manage AI Studio API Key</Button>
+          </Link>
         </CardContent>
       </Card>
 
