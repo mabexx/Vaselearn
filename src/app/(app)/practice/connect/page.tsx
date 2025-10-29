@@ -7,30 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { validateApiKey, saveApiKey, saveModel } from '@/lib/aistudio';
-
-const models = [
-  {
-    label: "Recommended",
-    models: [
-      { id: 'gemma-3-27b-it', name: 'Gemma 3 27B' },
-      { id: 'gemma-3-8b-it', name: 'Gemma 3 8B' },
-    ]
-  },
-  {
-    label: "Other Models",
-    models: [
-      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
-    ]
-  }
-];
+import { validateApiKey, saveApiKey } from '@/lib/aistudio';
 
 export default function ConnectPage() {
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState(models[0].models[0].id);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -44,7 +24,6 @@ export default function ConnectPage() {
     if (isValid) {
       try {
         saveApiKey(apiKey);
-        saveModel(selectedModel);
         router.push('/practice/quiz');
       } catch (error) {
         setError('Failed to save settings. Please try again.');
@@ -63,7 +42,7 @@ export default function ConnectPage() {
         <CardHeader>
           <CardTitle>Connect to Google AI Studio</CardTitle>
           <CardDescription>
-            Enter your Google AI Studio API key and select a model to generate quiz questions.
+            Enter your Google AI Studio API key to generate quiz questions.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -76,29 +55,6 @@ export default function ConnectPage() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="model">Model</Label>
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger id="model">
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                {models.map((group) => (
-                  <SelectGroup key={group.label}>
-                    <SelectLabel>{group.label}</SelectLabel>
-                    {group.models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Warning: Rate limits are dynamic and managed by Google.
-            </p>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Accordion type="single" collapsible className="w-full">
