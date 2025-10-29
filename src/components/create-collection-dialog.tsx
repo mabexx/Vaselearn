@@ -24,8 +24,10 @@ export default function CreateCollectionDialog() {
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('');
   const [error, setError] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreateCollection = async () => {
+  const handleCreateCollection = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     if (!name || !topic) {
       setError('Please fill in all fields.');
       return;
@@ -34,6 +36,8 @@ export default function CreateCollectionDialog() {
       setError('You must be logged in to create a collection.');
       return;
     }
+    setIsCreating(true);
+    setError('');
     try {
       await addDoc(collection(firestore, 'users', user.uid, 'flashcardCollections'), {
         name,
@@ -41,12 +45,13 @@ export default function CreateCollectionDialog() {
         createdAt: serverTimestamp(),
         userId: user.uid,
       });
-      setIsOpen(false);
       setName('');
       setTopic('');
-      setError('');
     } catch (err) {
       setError('Failed to create collection. Please try again.');
+    } finally {
+      setIsCreating(false);
+      setIsOpen(false);
     }
   };
 
@@ -89,7 +94,9 @@ export default function CreateCollectionDialog() {
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateCollection}>Create</Button>
+            <Button onClick={handleCreateCollection} disabled={isCreating}>
+              {isCreating ? 'Creating...' : 'Create'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

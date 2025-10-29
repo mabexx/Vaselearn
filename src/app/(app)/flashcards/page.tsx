@@ -37,6 +37,8 @@ export default function FlashcardsPage() {
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
   const [selectedCollection, setSelectedCollection] = useState<string>('mistake-vault');
+  const [shuffledMistakes, setShuffledMistakes] = useState<Mistake[]>([]);
+  const [shuffledFlashcards, setShuffledFlashcards] = useState<CustomFlashcard[]>([]);
 
   const mistakesCollection = useMemoFirebase(
     () => (user ? collection(firestore, 'users', user.uid, 'mistakes') : null),
@@ -49,11 +51,6 @@ export default function FlashcardsPage() {
 
   const { data: mistakes, isLoading: isLoadingMistakes } = useCollection<Mistake>(mistakesCollection);
   const { data: collections, isLoading: isLoadingCollections } = useCollection<FlashcardCollection>(flashcardCollections);
-
-  const shuffledMistakes = useMemo(() => {
-    if (!mistakes) return [];
-    return [...mistakes].sort(() => Math.random() - 0.5);
-  }, [mistakes]);
 
   const customFlashcardsCollection = useMemoFirebase(
     () =>
@@ -69,9 +66,16 @@ export default function FlashcardsPage() {
   const { data: customFlashcards, isLoading: isLoadingCustomFlashcards } =
     useCollection<CustomFlashcard>(customFlashcardsCollection);
 
-  const shuffledFlashcards = useMemo(() => {
-    if (!customFlashcards) return [];
-    return [...customFlashcards].sort(() => Math.random() - 0.5);
+  useEffect(() => {
+    if (mistakes) {
+      setShuffledMistakes([...mistakes].sort(() => Math.random() - 0.5));
+    }
+  }, [mistakes]);
+
+  useEffect(() => {
+    if (customFlashcards) {
+      setShuffledFlashcards([...customFlashcards].sort(() => Math.random() - 0.5));
+    }
   }, [customFlashcards]);
 
   const isLoading = isLoadingMistakes || isLoadingCollections || isLoadingCustomFlashcards;
@@ -119,11 +123,11 @@ export default function FlashcardsPage() {
     const item = selectedCollection === 'mistake-vault' ? 'mistake' : 'card';
 
     return (
-      <div className="text-center mb-8">
+      <div className="text-center mb-12">
         <div className="flex items-center justify-center gap-4 mb-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="text-2xl font-bold">
+              <Button variant="outline" className="text-3xl font-bold">
                 {collectionName}
               </Button>
             </DropdownMenuTrigger>
@@ -155,9 +159,10 @@ export default function FlashcardsPage() {
 
   if (selectedCollection === 'mistake-vault' && (!shuffledMistakes || shuffledMistakes.length === 0)) {
     return (
-      <div className="w-full max-w-3xl mx-auto">
+      <div className="container mx-auto py-10">
+        <h1 className="text-3xl font-bold text-center mb-8">Flashcard Review</h1>
         {renderHeader()}
-        <Card>
+        <Card className="w-full max-w-2xl mx-auto">
           <CardContent className="flex flex-col items-center justify-center text-center p-12">
             <Layers className="h-16 w-16 mb-4 text-muted-foreground" />
             <h2 className="text-2xl font-semibold">No Flashcards to Review</h2>
@@ -175,17 +180,21 @@ export default function FlashcardsPage() {
 
   if (selectedCollection !== 'mistake-vault' && (!shuffledFlashcards || shuffledFlashcards.length === 0)) {
     return (
-      <div className="w-full max-w-3xl mx-auto">
+      <div className="container mx-auto py-10">
+        <h1 className="text-3xl font-bold text-center mb-8">Flashcard Review</h1>
         {renderHeader()}
-        <CreateFlashcardCard collectionId={selectedCollection} />
+        <div className="w-full max-w-2xl mx-auto">
+          <CreateFlashcardCard collectionId={selectedCollection} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="container mx-auto py-10">
+      <h1 className="text-3xl font-bold text-center mb-8">Flashcard Review</h1>
       {renderHeader()}
-      <Carousel setApi={setApi} className="w-full">
+      <Carousel setApi={setApi} className="w-full max-w-2xl mx-auto">
         <CarouselContent>
           {selectedCollection === 'mistake-vault'
             ? shuffledMistakes.map((mistake) => (
