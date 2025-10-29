@@ -1,8 +1,17 @@
+
 // components/LanguageSelector.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import Script from 'next/script';
+import { Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Language {
   value: string;
@@ -11,12 +20,9 @@ interface Language {
 
 // Function to clear the Google Translate cookie
 const clearGoogleTranslateCookie = () => {
-    // Setting the expiration date to the past removes the cookie
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    // It might be set on the specific domain, so we clear it there too
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+  document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
 };
-
 
 export default function LanguageSelector() {
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -25,52 +31,54 @@ export default function LanguageSelector() {
   useEffect(() => {
     const googleTranslateElementInit = () => {
       new (window as any).google.translate.TranslateElement(
-        {
-          pageLanguage: 'en',
-          autoDisplay: false,
-        },
+        { pageLanguage: 'en', autoDisplay: false },
         'google_translate_element'
       );
 
       const observer = new MutationObserver(() => {
         const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
         if (combo && combo.options.length > 1) {
-          observer.disconnect(); // Stop observing once we have the languages
+          observer.disconnect();
 
           const allLanguages: Language[] = Array.from(combo.options).map(option => ({
             value: option.value,
             label: option.text,
           }));
 
-          const priorityCodes = ['en', 'et', 'lv', 'lt'];
+          const ethiopianCodes = ['aa', 'am', 'om', 'ti'];
+          const internationalCodes = ['ar', 'zh-CN', 'zh-TW', 'en', 'fr', 'ja', 'ko'];
 
-          const priorityLanguages = priorityCodes
+          const priorityEthiopian = ethiopianCodes
+            .map(code => allLanguages.find(lang => lang.value === code))
+            .filter((lang): lang is Language => !!lang)
+            .sort((a, b) => a.label.localeCompare(b.label));
+
+          let priorityInternational = internationalCodes
             .map(code => allLanguages.find(lang => lang.value === code))
             .filter((lang): lang is Language => !!lang);
 
-          if (!priorityLanguages.some(lang => lang.value === 'en')) {
-            priorityLanguages.unshift({ value: 'en', label: 'English' });
+          if (!priorityInternational.some(lang => lang.value === 'en')) {
+            priorityInternational.push({ value: 'en', label: 'English' });
           }
 
+          priorityInternational.sort((a, b) => a.label.localeCompare(b.label));
+
           const otherLanguages = allLanguages
-            .filter(lang => !priorityCodes.includes(lang.value))
+            .filter(lang => ![...ethiopianCodes, ...internationalCodes].includes(lang.value))
             .sort((a, b) => a.label.localeCompare(b.label));
 
-          setLanguages([...priorityLanguages, ...otherLanguages]);
+          setLanguages([...priorityEthiopian, ...priorityInternational, ...otherLanguages]);
         }
       });
 
       const targetNode = document.getElementById('google_translate_element');
       if (targetNode) {
-        observer.observe(targetNode, {
-          childList: true,
-          subtree: true,
-        });
+        observer.observe(targetNode, { childList: true, subtree: true });
       }
     };
 
     if (!(window as any).googleTranslateElementInit) {
-        (window as any).googleTranslateElementInit = googleTranslateElementInit;
+      (window as any).googleTranslateElementInit = googleTranslateElementInit;
     }
 
     const style = document.createElement('style');
@@ -99,9 +107,16 @@ export default function LanguageSelector() {
 
   const defaultLanguages: Language[] = [
       { value: 'en', label: 'English' },
-      { value: 'et', label: 'Eesti' },
-      { value: 'lv', label: 'Latviešu' },
-      { value: 'lt', label: 'Lietuvių' },
+      { value: 'aa', label: 'Afar' },
+      { value: 'am', label: 'Amharic' },
+      { value: 'om', label: 'Oromo' },
+      { value: 'ti', label: 'Tigrinya' },
+      { value: 'ar', label: 'Arabic' },
+      { value: 'zh-CN', label: 'Chinese (Simplified)' },
+      { value: 'zh-TW', label: 'Chinese (Traditional)' },
+      { value: 'fr', label: 'French' },
+      { value: 'ja', label: 'Japanese' },
+      { value: 'ko', label: 'Korean' },
   ];
 
   const languagesToRender = languages.length > 0 ? languages : defaultLanguages;
@@ -112,20 +127,22 @@ export default function LanguageSelector() {
         src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
         strategy="afterInteractive"
       />
-
       <div id="google_translate_element" style={{ display: 'none' }}></div>
-
-      <select
-        value={selectedLanguage}
-        onChange={(e) => changeLanguage(e.target.value)}
-        className="border rounded px-3 py-2 bg-white"
-      >
-        {languagesToRender.map(lang => (
-          <option key={lang.value} value={lang.value}>
-            {lang.label}
-          </option>
-        ))}
-      </select>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon">
+            <Globe className="h-[1.2rem] w-[1.2rem]" />
+            <span className="sr-only">Select Language</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {languagesToRender.map(lang => (
+            <DropdownMenuItem key={lang.value} onSelect={() => changeLanguage(lang.value)}>
+              {lang.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
 }
