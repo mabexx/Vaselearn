@@ -8,12 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { subjects } from '@/lib/subjects';
 
 export default function PracticePage() {
   const [topic, setTopic] = useState('');
   const [questionType, setQuestionType] = useState('multiple-choice');
-  const [subject, setSubject] = useState('');
   const [difficulty, setDifficulty] = useState('neutral');
   const [model, setModel] = useState('gemma-27b');
   const router = useRouter();
@@ -57,22 +55,6 @@ export default function PracticePage() {
                 <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
                 <SelectItem value="true-false">True/False</SelectItem>
                 <SelectItem value="case-based">Case-Based (Short Answer)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subject">Subjects (optional)</Label>
-            <Select value={subject} onValueChange={setSubject}>
-              <SelectTrigger id="subject">
-                <SelectValue placeholder="Select a subject" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Select a subject</SelectItem>
-                {subjects.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
               </SelectContent>
             </Select>
           </div>
