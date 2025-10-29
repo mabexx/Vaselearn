@@ -14,15 +14,24 @@ export default function PracticePage() {
   const [questionType, setQuestionType] = useState('multiple-choice');
   const [difficulty, setDifficulty] = useState('neutral');
   const [model, setModel] = useState('gemma-27b');
+  const [questionsAmount, setQuestionsAmount] = useState('10');
+  const [questionsAmountError, setQuestionsAmountError] = useState('');
   const router = useRouter();
 
   const handleStartQuiz = () => {
+    const amount = parseInt(questionsAmount, 10);
+    if (isNaN(amount) || amount < 2 || amount > 30) {
+      setQuestionsAmountError('only 2 upto 30 is allowed for performance issues');
+      return;
+    }
+    setQuestionsAmountError('');
+
     const params = new URLSearchParams({
       topic,
       questionType,
       difficulty,
       model,
-      limit: '5', // Default to 5 questions
+      limit: questionsAmount,
     });
     router.push(`/practice/quiz?${params.toString()}`);
   };
@@ -84,6 +93,22 @@ export default function PracticePage() {
                 <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash lite</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="questionsAmount">Questions Amount</Label>
+            <Input
+              id="questionsAmount"
+              type="number"
+              value={questionsAmount}
+              onChange={(e) => {
+                setQuestionsAmount(e.target.value);
+                if (questionsAmountError) {
+                  setQuestionsAmountError('');
+                }
+              }}
+              className={questionsAmountError ? 'border-red-500' : ''}
+            />
+            {questionsAmountError && <p className="text-sm text-red-500">{questionsAmountError}</p>}
           </div>
         </CardContent>
         <CardFooter>
