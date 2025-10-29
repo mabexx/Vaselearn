@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getApiKey, getModel } from '@/lib/aistudio';
+import { getApiKey } from '@/lib/aistudio';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
@@ -14,12 +14,14 @@ export default function QuizComponentInner({
   topic, 
   limit, 
   clientType, 
-  questionType 
+  questionType,
+  model
 }: { 
   topic: string; 
   limit: number; 
   clientType: string; 
   questionType: string; 
+  model: string;
 }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
@@ -37,9 +39,8 @@ export default function QuizComponentInner({
     const fetchSettingsAndGenerateQuestions = async () => {
       setLoadingMessage('Retrieving settings...');
       const key = getApiKey();
-      const model = getModel();
 
-      if (!key || !model) {
+      if (!key) {
         router.push('/practice/connect');
         return;
       }
@@ -54,7 +55,7 @@ export default function QuizComponentInner({
     };
 
     fetchSettingsAndGenerateQuestions();
-  }, []);
+  }, [model, router]);
 
   const generateQuestions = async (apiKey: string, modelId: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);
