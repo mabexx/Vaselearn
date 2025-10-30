@@ -1,9 +1,3 @@
-import withPWA from '@ducanh2912/next-pwa';
-
-const pwaWithSettings = withPWA({
-  dest: 'public',
-});
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
@@ -33,4 +27,4 @@ const nextConfig = {
   },
 };
 
-export default pwaWithSettings(nextConfig);
+export default nextConfig;
