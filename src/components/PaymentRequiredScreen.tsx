@@ -5,12 +5,12 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 // Assume useAuth returns an object with the Firebase auth instance
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/hooks/useAuth';
 import { signOut } from 'firebase/auth';
 
 const PaymentRequiredScreen: React.FC = () => {
   const router = useRouter();
-  const auth = useAuth();
+  const { auth } = useAuth();
 
   const handleRetryAccess = async () => {
     try {
