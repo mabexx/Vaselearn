@@ -60,23 +60,31 @@ export default function SignupPage() {
 
       // Create or merge Firestore user profile
       const userProfileRef = doc(firestore, 'users', user.uid);
-      await setDocumentNonBlocking(
-        userProfileRef,
-        {
-          id: user.uid,
-          name: displayName,
-          email: user.email,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true } // merge ensures we don't overwrite existing fields
-      );
+      try {
+        await setDocumentNonBlocking(
+          userProfileRef,
+          {
+            id: user.uid,
+            name: displayName,
+            email: user.email,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true } // merge ensures we don't overwrite existing fields
+        );
 
-      toast({
-        title: 'Account Created',
-        description: "You've been successfully signed up.",
-      });
-      router.push('/home');
-
+        toast({
+          title: 'Account Created',
+          description: "You've been successfully signed up.",
+        });
+        router.push('/home');
+      } catch (firestoreError: any) {
+        if (firestoreError.code === 'permission-denied') {
+          router.push('/payment-required');
+          return; // Stop further execution
+        }
+        // Re-throw or handle other firestore errors if needed
+        throw firestoreError;
+      }
     } catch (error: any) {
       console.error(error);
       let description = 'An unexpected error occurred. Please try again.';
