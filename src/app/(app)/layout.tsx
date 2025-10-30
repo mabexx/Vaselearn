@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { BookOpen, Home, LayoutDashboard, LogOut, Users, ShieldAlert, Settings, Dumbbell, Trophy, Menu, Compass, Goal, Layers, Sparkles, LifeBuoy } from 'lucide-react';
