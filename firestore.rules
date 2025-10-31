@@ -3,10 +3,21 @@
  * @description This ruleset enforces a strict user-ownership model for most data, with exceptions for public feedback.
  *
  * Data Structure:
- * - /users/{userId}: User profiles, owned by the user. (NOW REQUIRES WHITELIST FOR CREATE)
- * - /whitelist/{email}: List of paid users. Locked down to manual access only.
- * * Key Security Decisions:
- * - The 'create' action on /users/{userId} is the main payment gate.
+ * - /users/{userId}: User profiles, owned by the user.
+ * - /users/{userId}/notes/{noteId}: Notes created by the user.
+ * - /users/{userId}/practiceSessions/{sessionId}: Practice sessions completed by the user.
+ * - /users/{userId}/mistakes/{mistakeId}: Mistakes made by the user in practice sessions.
+ * - /users/{userId}/customGoals/{goalId}: Custom goals defined by the user.
+ * - /feedback/{feedbackId}: Public feedback on AI-generated questions.
+ *
+ * Key Security Decisions:
+ * - User data (profiles, notes, practice sessions, mistakes, customGoals) is strictly controlled by the owning user.
+ * - Users can only access their own data and cannot list other users' data.
+ * - Feedback is publicly readable, but write access is restricted to authenticated users and requires a matching userId.
+ * - Listing other user's data is disallowed.
+ *
+ * Denormalization for Authorization:
+ * - The 'userId' field is present in all user-owned documents to simplify ownership checks.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -24,52 +35,28 @@ service cloud.firestore {
         return isOwner(userId) && resource != null;
     }
 
-    // NEW FUNCTION: Checks the /whitelist collection using the user's email address.
-    function isWhitelisted() {
-      // Access is granted if a document with the user's email as the ID exists in the 'whitelist' collection.
-      return isSignedIn() && exists(/databases/$(database)/documents/whitelist/$(request.auth.token.email));
-    }
-
-    // =========================================================================
-    // 1. THE WHITELIST LOCKBOX: /whitelist/{email}
-    // =========================================================================
-
-    /**
-     * @description Locks down the whitelist completely. Only backend access allowed.
-     * @path /whitelist/{email}
-     */
-    match /whitelist/{email} {
-      allow read, write: if false; 
-    }
-
-    // =========================================================================
-    // 2. USER PROFILES (The Sign-Up Gate)
-    // =========================================================================
-
     /**
      * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @principle **MODIFIED:** Enforces whitelist for creating the initial profile document.
+     * @allow (create) User with ID 'user123' can create their own profile.
+     * @allow (get) User with ID 'user123' can read their own profile.
+     * @deny (get) User with ID 'user456' cannot read user 'user123's profile.
+     * @principle Enforces document ownership and prevents unauthorized profile access.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      
-      // *** THE CORE PAYMENT GATE IS HERE ***
-      // Only allow creation if the user is the owner AND their email is on the whitelist.
-      allow create: if isOwner(userId) && isWhitelisted() && request.resource.data.id == userId;
-      
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
-    // =========================================================================
-    // 3. SUBCOLLECTIONS (No functional changes needed)
-    // =========================================================================
-
     /**
      * @description Controls access to user notes.
      * @path /users/{userId}/notes/{noteId}
+     * @allow (create) User with ID 'user123' can create a note under their profile.
+     * @allow (get) User with ID 'user123' can read a note under their profile.
+     * @deny (get) User with ID 'user456' cannot read notes under user 'user123's profile.
      * @principle Enforces document ownership for notes.
      */
     match /users/{userId}/notes/{noteId} {
@@ -83,6 +70,9 @@ service cloud.firestore {
     /**
      * @description Controls access to user practice sessions.
      * @path /users/{userId}/practiceSessions/{sessionId}
+     * @allow (create) User with ID 'user123' can create a practice session under their profile.
+     * @allow (get) User with ID 'user123' can read a practice session under their profile.
+     * @deny (get) User with ID 'user456' cannot read practice sessions under user 'user123's profile.
      * @principle Enforces document ownership for practice sessions.
      */
     match /users/{userId}/practiceSessions/{sessionId} {
@@ -96,6 +86,9 @@ service cloud.firestore {
     /**
      * @description Controls access to user mistakes.
      * @path /users/{userId}/mistakes/{mistakeId}
+     * @allow (create) User with ID 'user123' can create a mistake under their profile.
+     * @allow (get) User with ID 'user123' can read a mistake under their profile.
+     * @deny (get) User with ID 'user456' cannot read mistakes under user 'user123's profile.
      * @principle Enforces document ownership for mistakes.
      */
     match /users/{userId}/mistakes/{mistakeId} {
@@ -109,6 +102,10 @@ service cloud.firestore {
     /**
      * @description Controls access to user custom goals.
      * @path /users/{userId}/customGoals/{goalId}
+     * @allow (create) User with ID 'user123' can create a custom goal under their profile.
+     * @allow (list) User with ID 'user123' can list custom goals under their profile.
+     * @allow (get) User with ID 'user123' can read a custom goal under their profile.
+     * @deny (get) User with ID 'user456' cannot read custom goals under user 'user123's profile.
      * @principle Enforces document ownership for custom goals.
      */
     match /users/{userId}/customGoals/{goalId} {
@@ -119,13 +116,14 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-    // =========================================================================
-    // 4. PUBLIC FEEDBACK (No functional changes needed)
-    // =========================================================================
-
     /**
      * @description Controls access to quiz feedback.
      * @path /feedback/{feedbackId}
+     * @allow (get) Any user can read quiz feedback.
+     * @allow (list) Any user can list quiz feedback.
+     * @allow (create) Only authenticated users can create feedback, and the userId must match their auth.
+     * @deny (create) Unauthenticated users cannot create feedback.
+     * @deny (update) No updates allowed
      * @principle Allows public read access to feedback while restricting write access to authenticated users.
      */
     match /feedback/{feedbackId} {
