@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -13,12 +12,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { initiateEmailSignIn, useAuth } from '@/firebase';
-import { Logo } from '@/components/icons';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,6 +25,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const handleLogin = async (e: React.FormEvent) => {
@@ -93,16 +93,34 @@ export default function LoginPage() {
                     disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                    id="terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                />
+                <Label htmlFor="terms" className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    I agree to the{' '}
+                    <Link href="/terms" className="underline hover:text-primary">
+                    Terms of Service
+                    </Link>{' '}
+                    and{' '}
+                    <Link href="/privacy" className="underline hover:text-primary">
+                    Privacy Policy
+                    </Link>
+                    .
+                </Label>
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading || !agreedToTerms}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{' '}
-              <Link href="/signup" className="underline">
-                Sign up
-              </Link>
+              <a href="http://t.me/vasickid" target="_blank" rel="noopener noreferrer" className="underline">
+                Contact us via Telegram @vasickid
+              </a>
             </div>
           </CardContent>
         </Card>
