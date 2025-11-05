@@ -28,5 +28,6 @@ export const notes = sqliteTable("notes", {
                                 question: text("question"),
                                   userAnswer: text("user_answer"),
                                     correctAnswer: text("correct_answer"),
+              explanation: text("explanation"),
                                       createdAt: text("created_at").default(new Date().toISOString()),
                                       });

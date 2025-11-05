@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { practiceSessions, mistakeVault } from "@/db/schema";
 
-export function addPracticeSession(topic, question, userAnswer, correctAnswer) {
+export function addPracticeSession(topic, question, userAnswer, correctAnswer, explanation) {
   const result = userAnswer === correctAnswer ? "Correct" : "Wrong";
 
     // Insert practice session
@@ -18,6 +18,7 @@ export function addPracticeSession(topic, question, userAnswer, correctAnswer) {
                                                     question,
                                                             userAnswer,
                                                                     correctAnswer,
+                                                                    explanation,
                                                                           })
                                                                                 .run();
                                                                                   }

@@ -4,13 +4,21 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface FlashcardProps {
   question: string;
   answer: string;
+  explanation?: string;
 }
 
-export default function Flashcard({ question, answer }: FlashcardProps) {
+export default function Flashcard({ question, answer, explanation }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
@@ -39,7 +47,21 @@ export default function Flashcard({ question, answer }: FlashcardProps) {
         <Card className="absolute h-full w-full [backface-visibility:hidden] [transform:rotateY(180deg)]">
           <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
             <p className="text-base text-muted-foreground">{answer}</p>
-             <div className="absolute bottom-4 right-4 flex items-center gap-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+            {explanation && (
+              <div className="absolute bottom-4 left-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">Show Explanation</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <p className="text-sm text-muted-foreground whitespace-normal">{explanation}</p>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+            <div className="absolute bottom-4 right-4 flex items-center gap-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
               <RefreshCw className="h-3 w-3" />
               Click to flip
             </div>

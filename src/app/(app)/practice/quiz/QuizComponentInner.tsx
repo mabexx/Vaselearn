@@ -9,9 +9,10 @@ import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
 import { QuizQuestion } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { addPracticeSession } from '../actions';
 
-export default function QuizComponentInner({ 
-  topic, 
+export default function QuizComponentInner({
+  topic,
   limit, 
   clientType, 
   questionType 
@@ -31,6 +32,7 @@ export default function QuizComponentInner({
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [showResult, setShowResult] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function QuizComponentInner({
       The target audience is learners associated with a "${clientType}".
       The quiz should be of the type "${questionType}".
 
-      Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple_choice", "true_false", or "case_based", and a "question" field.
+      Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple_choice", "true_false", or "case_based", a "question" field, and an "explanation" field.
       - For "multiple_choice", include an "options" array and an "answer" field with the correct option.
       - For "true_false", include an "answer" field that is a boolean.
       - For "case_based", include a "prompt" field for the user to respond to and an "answer" field.
@@ -76,18 +78,21 @@ export default function QuizComponentInner({
           "type": "multiple_choice",
           "question": "What is the capital of France?",
           "options": ["London", "Berlin", "Paris", "Madrid"],
-          "answer": "Paris"
+          "answer": "Paris",
+          "explanation": "Paris is the capital of France."
         },
         {
           "type": "true_false",
           "question": "The earth is flat.",
-          "answer": false
+          "answer": false,
+          "explanation": "The earth is a sphere."
         },
         {
           "type": "case_based",
           "question": "A user is having trouble logging in. They have reset their password but still can't access their account.",
           "prompt": "What are the next steps to troubleshoot this issue?",
-          "answer": "Check if the user's account is locked, verify the email address they are using, and check for any recent security alerts."
+          "answer": "Check if the user's account is locked, verify the email address they are using, and check for any recent security alerts.",
+          "explanation": "These are the standard troubleshooting steps for login issues."
         }
       ]
 
@@ -160,6 +165,7 @@ export default function QuizComponentInner({
                   setUserAnswers(newAnswers);
                 }}
                 userAnswer={userAnswers[currentQuestion] as string}
+                disabled={showResult}
               />
             )}
             {questions[currentQuestion]?.type === 'true_false' && (
@@ -171,6 +177,7 @@ export default function QuizComponentInner({
                   setUserAnswers(newAnswers);
                 }}
                 userAnswer={userAnswers[currentQuestion] as boolean}
+                disabled={showResult}
               />
             )}
             {questions[currentQuestion]?.type === 'case_based' && (
@@ -182,26 +189,55 @@ export default function QuizComponentInner({
                   setUserAnswers(newAnswers);
                 }}
                 userAnswer={userAnswers[currentQuestion] as string}
+                disabled={showResult}
               />
             )}
           </div>
 
+          {showResult && (
+            <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+              <h4 className="font-bold text-lg mb-2">
+                {String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer)
+                  ? 'Correct!'
+                  : 'Incorrect'}
+              </h4>
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Explanation:</span> {questions[currentQuestion].explanation}
+              </p>
+            </div>
+          )}
+
           <button
             onClick={() => {
-              if (String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer)) {
-                setScore(score + 1);
-              }
-              
-              if (currentQuestion < questions.length - 1) {
-                setCurrentQuestion(currentQuestion + 1);
+              if (showResult) {
+                const isCorrect = String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer);
+                if (isCorrect) {
+                  setScore(score + 1);
+                }
+                addPracticeSession(
+                  topic,
+                  questions[currentQuestion].question,
+                  String(userAnswers[currentQuestion]),
+                  String(questions[currentQuestion].answer),
+                  questions[currentQuestion].explanation
+                );
+
+                if (currentQuestion < questions.length - 1) {
+                  setCurrentQuestion(currentQuestion + 1);
+                  setShowResult(false);
+                } else {
+                  setIsComplete(true);
+                }
               } else {
-                setIsComplete(true);
+                setShowResult(true);
               }
             }}
             disabled={userAnswers[currentQuestion] === undefined}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
           >
-            {currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+            {showResult
+              ? (currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz')
+              : 'Submit Answer'}
           </button>
         </div>
       ) : (
@@ -215,6 +251,9 @@ export default function QuizComponentInner({
                   <p>Your answer: {String(userAnswers[index])}</p>
                   <p>Correct answer: {String(q.answer)}</p>
                   <p>Status: {String(userAnswers[index]) === String(q.answer) ? 'Correct' : 'Incorrect'}</p>
+                  <p className="text-sm text-gray-700 mt-2">
+                    <span className="font-semibold">Explanation:</span> {q.explanation}
+                  </p>
                 </div>
               ))}
               <Button onClick={() => setShowSummary(false)}>Back to Score</Button>
@@ -235,6 +274,7 @@ export default function QuizComponentInner({
                     setUserAnswers([]);
                     setScore(0);
                     setIsComplete(false);
+                    setShowResult(false);
                   }}
                 >
                   Restart Quiz
