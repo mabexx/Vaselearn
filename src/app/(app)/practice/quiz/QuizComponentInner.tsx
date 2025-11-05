@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getApiKey, getModel } from '@/lib/aistudio';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
 import { QuizQuestion } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { addPracticeSession } from '../actions';
 
 export default function QuizComponentInner({
   topic,
@@ -22,6 +23,8 @@ export default function QuizComponentInner({
   clientType: string; 
   questionType: string; 
 }) {
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,6 +140,39 @@ export default function QuizComponentInner({
     }
   };
 
+  const handleAnswerSubmit = async () => {
+    setShowResult(true);
+
+    const isCorrect = String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer);
+    if (isCorrect) {
+      setScore(score + 1);
+    } else if (user && firestore) {
+      try {
+        await addDoc(collection(firestore, 'users', user.uid, 'mistakes'), {
+          question: questions[currentQuestion].question,
+          userAnswer: String(userAnswers[currentQuestion]),
+          correctAnswer: String(questions[currentQuestion].answer),
+          explanation: questions[currentQuestion].explanation,
+          topic: topic,
+          createdAt: serverTimestamp(),
+          userId: user.uid,
+          practiceSessionId: '', // TODO: Add practice session ID
+        });
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
+    }
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setShowResult(false);
+    } else {
+      setIsComplete(true);
+    }
+  };
+
   if (loading || questions.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4">
@@ -210,26 +246,9 @@ export default function QuizComponentInner({
           <button
             onClick={() => {
               if (showResult) {
-                const isCorrect = String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer);
-                if (isCorrect) {
-                  setScore(score + 1);
-                }
-                addPracticeSession(
-                  topic,
-                  questions[currentQuestion].question,
-                  String(userAnswers[currentQuestion]),
-                  String(questions[currentQuestion].answer),
-                  questions[currentQuestion].explanation
-                );
-
-                if (currentQuestion < questions.length - 1) {
-                  setCurrentQuestion(currentQuestion + 1);
-                  setShowResult(false);
-                } else {
-                  setIsComplete(true);
-                }
+                handleNextQuestion();
               } else {
-                setShowResult(true);
+                handleAnswerSubmit();
               }
             }}
             disabled={userAnswers[currentQuestion] === undefined}

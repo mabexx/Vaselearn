@@ -76,6 +76,7 @@ export interface Mistake {
     userAnswer: string;
     correctAnswer: string;
     topic: string;
+    explanation?: string;
     createdAt: Timestamp;
     userId: string;
     practiceSessionId: string;
