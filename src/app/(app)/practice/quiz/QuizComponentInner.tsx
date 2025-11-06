@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,20 +8,24 @@ import { getApiKey, getModel } from '@/lib/aistudio';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
-import { QuizQuestion } from '@/lib/types';
+import { QuizQuestion, PracticeSession, Mistake } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, Timestamp, doc } from 'firebase/firestore';
 
-export default function QuizComponentInner({ 
-  topic, 
-  limit, 
-  clientType, 
-  questionType 
-}: { 
-  topic: string; 
-  limit: number; 
-  clientType: string; 
-  questionType: string; 
+export default function QuizComponentInner({
+  topic,
+  limit,
+  clientType,
+  questionType,
+}: {
+  topic: string;
+  limit: number;
+  clientType: string;
+  questionType: string;
 }) {
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +36,8 @@ export default function QuizComponentInner({
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [explanations, setExplanations] = useState<string[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -132,6 +139,114 @@ export default function QuizComponentInner({
     }
   };
 
+  const generateExplanations = async (): Promise<string[]> => {
+    if (!apiKey || !modelId) return [];
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: modelId });
+
+    const prompt = `
+      For the following quiz questions and their correct answers, provide a concise explanation for each answer.
+      The target audience is learners associated with a "${clientType}".
+      The topic is "${topic}".
+
+      Questions and Answers:
+      ${questions.map((q, i) => `${i + 1}. Question: ${q.question}\n   Answer: ${String(q.answer)}`).join('\n')}
+
+      Format your response as a valid JSON array of strings, where each string is the explanation for the corresponding question.
+      Example:
+      [
+        "Explanation for question 1...",
+        "Explanation for question 2...",
+        "Explanation for question 3..."
+      ]
+
+      Important: Return ONLY the JSON array, no other text or explanation.
+    `;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = await response.text();
+
+      let jsonString = text;
+      const codeBlockMatch = text.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
+      if (codeBlockMatch) {
+        jsonString = codeBlockMatch[1];
+      } else {
+        const arrayMatch = text.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+          jsonString = arrayMatch[0];
+        }
+      }
+
+      const parsed = JSON.parse(jsonString) as string[];
+      if (!Array.isArray(parsed) || parsed.length !== questions.length) {
+          throw new Error('Invalid explanation format or length mismatch');
+      }
+      return parsed;
+
+    } catch (err) {
+      console.warn('Failed to generate explanations:', err);
+      return questions.map(() => 'Could not generate an explanation for this question.');
+    }
+  };
+
+  const handleSubmitQuiz = async () => {
+    if (!user) {
+      console.error("No user found, cannot submit quiz.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setLoadingMessage('Submitting your results...');
+
+    // Recalculate the final score to ensure accuracy
+    const finalScore = userAnswers.reduce((acc, answer, index) => {
+      return String(answer) === String(questions[index].answer) ? acc + 1 : acc;
+    }, 0);
+    setScore(finalScore);
+
+    const explanations = await generateExplanations();
+    setExplanations(explanations);
+
+    const practiceSessionData: Omit<PracticeSession, 'id' | 'userId'> = {
+      topic,
+      questions: questions.map((q, i) => ({
+        question: q.question,
+        userAnswer: String(userAnswers[i]),
+        correctAnswer: String(q.answer),
+        isCorrect: String(userAnswers[i]) === String(q.answer),
+        type: q.type,
+        explanation: explanations[i],
+      })),
+      score: finalScore,
+      totalQuestions: questions.length,
+      createdAt: Timestamp.now(),
+    };
+
+    const sessionDocRef = await addDoc(collection(firestore, 'users', user.uid, 'practiceSessions'), practiceSessionData);
+
+    const mistakesCollection = collection(firestore, 'users', user.uid, 'mistakes');
+    for (let i = 0; i < questions.length; i++) {
+      const isCorrect = String(userAnswers[i]) === String(questions[i].answer);
+      if (!isCorrect) {
+        const mistakeData: Omit<Mistake, 'id' | 'userId'> = {
+          question: questions[i].question,
+          userAnswer: String(userAnswers[i]),
+          correctAnswer: String(questions[i].answer),
+          topic,
+          createdAt: Timestamp.now(),
+          practiceSessionId: sessionDocRef.id,
+        };
+        await addDoc(mistakesCollection, mistakeData);
+      }
+    }
+
+    setIsComplete(true);
+    setIsSubmitting(false);
+  };
+
   if (loading || questions.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4">
@@ -188,20 +303,16 @@ export default function QuizComponentInner({
 
           <button
             onClick={() => {
-              if (String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer)) {
-                setScore(score + 1);
-              }
-              
               if (currentQuestion < questions.length - 1) {
                 setCurrentQuestion(currentQuestion + 1);
               } else {
-                setIsComplete(true);
+                handleSubmitQuiz();
               }
             }}
-            disabled={userAnswers[currentQuestion] === undefined}
+            disabled={userAnswers[currentQuestion] === undefined || isSubmitting}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
           >
-            {currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+            {isSubmitting ? 'Submitting...' : (currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz')}
           </button>
         </div>
       ) : (
@@ -209,14 +320,24 @@ export default function QuizComponentInner({
           {showSummary ? (
             <div>
               <h3 className="text-2xl font-bold mb-4">Quiz Summary</h3>
-              {questions.map((q, index) => (
-                <div key={index} className="mb-4 p-4 border rounded-lg">
-                  <p className="font-semibold">{q.question}</p>
-                  <p>Your answer: {String(userAnswers[index])}</p>
-                  <p>Correct answer: {String(q.answer)}</p>
-                  <p>Status: {String(userAnswers[index]) === String(q.answer) ? 'Correct' : 'Incorrect'}</p>
-                </div>
-              ))}
+              {isSubmitting ? (
+                <p>Loading explanations...</p>
+              ) : (
+                questions.map((q, index) => (
+                  <div key={index} className="mb-4 p-4 border rounded-lg">
+                    <p className="font-semibold">{q.question}</p>
+                    <p>Your answer: {String(userAnswers[index])}</p>
+                    <p>Correct answer: {String(q.answer)}</p>
+                    <p>Status: {String(userAnswers[index]) === String(q.answer) ? 'Correct' : 'Incorrect'}</p>
+                    {explanations[index] && (
+                      <div className="mt-2 p-2 bg-gray-100 rounded">
+                        <p className="text-sm font-semibold">Explanation:</p>
+                        <p className="text-sm">{explanations[index]}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
               <Button onClick={() => setShowSummary(false)}>Back to Score</Button>
             </div>
           ) : (
