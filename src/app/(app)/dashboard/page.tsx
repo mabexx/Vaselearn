@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useMemo } from "react";
+import { useMistakes } from '@/hooks/useMistakes';
 import {
   Card,
   CardContent,
@@ -9,17 +9,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Activity, BookCheck, Download, Star, Target, TrendingUp, TrendingDown, CalendarDays, Zap, BarChart3, Bot, Check, ShieldAlert, CheckCircle2, Repeat, CalendarCheck } from "lucide-react";
+import {
+  Activity,
+  BookCheck,
+  Download,
+  Star,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  CalendarDays,
+  Zap,
+  BarChart3,
+  Bot,
+  Check,
+  ShieldAlert,
+  CheckCircle2,
+  Repeat,
+  CalendarCheck,
+  GraduationCap
+} from "lucide-react";
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, Timestamp } from "firebase/firestore";
-import { PracticeSession, Mistake, CustomGoal } from "@/lib/types";
+import { PracticeSession, CustomGoal } from "@/lib/types";
 import { downloadJson } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConsistencyChart, PerformanceByTimeChart } from "@/components/dashboard-extra-charts";
 import Link from "next/link";
-import { isSameDay, startOfWeek, endOfWeek, differenceInDays, subDays, format } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, differenceInDays, subDays } from 'date-fns';
 
 interface SubjectStats {
   topic: string;
@@ -30,6 +48,7 @@ interface SubjectStats {
 export default function Dashboard() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { mistakes, isLoading: isLoadingMistakes, totalMistakes } = useMistakes();
 
   const practiceSessionsCollection = useMemoFirebase(() =>
     user ? collection(firestore, 'users', user.uid, 'practiceSessions') : null
@@ -60,7 +79,7 @@ export default function Dashboard() {
 
     const statsBySubject: { [key: string]: { totalScore: number; totalQuestions: number; sessionCount: number } } = {};
     
-    const startOfThisWeek = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+    const startOfThisWeek = startOfWeek(now, { weekStartsOn: 1 });
     let weeklySessions = 0;
 
     const sortedSessions = [...practiceSessions].sort((a, b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis());
@@ -81,7 +100,6 @@ export default function Dashboard() {
       practiceDays.add(sessionDate.toISOString().split('T')[0]);
     });
 
-    // Calculate Streak
     let currentStreak = 0;
     if (practiceDays.size > 0) {
         const uniqueDays = Array.from(practiceDays).map(d => new Date(d)).sort((a,b) => b.getTime() - a.getTime());
@@ -123,7 +141,6 @@ export default function Dashboard() {
 
   }, [practiceSessions]);
 
-
   const dashboardStats = useMemo(() => {
     if (!practiceSessions || practiceSessions.length === 0) {
       return {
@@ -159,7 +176,6 @@ export default function Dashboard() {
         'Night (0-6)': { totalScore: 0, totalQuestions: 0 },
     };
 
-
     practiceSessions.forEach(session => {
       if (!statsBySubject[session.topic]) {
         statsBySubject[session.topic] = { totalScore: 0, sessionCount: 0, questions: 0 };
@@ -186,12 +202,11 @@ export default function Dashboard() {
       
       timeOfDayStats[timeSlot].totalScore += session.score;
       timeOfDayStats[timeSlot].totalQuestions += session.totalQuestions;
-
     });
 
     const subjectStats: SubjectStats[] = Object.entries(statsBySubject).map(([topic, stats]) => ({
       topic,
-      averageScore: Math.round((stats.totalScore / (stats.sessionCount * 10)) * 1000 / 10), // Assuming totalQuestions is always 10 for avg calc simplicity
+      averageScore: Math.round((stats.totalScore / (stats.sessionCount * 10)) * 1000 / 10),
       sessions: stats.sessionCount,
     }));
 
@@ -210,7 +225,6 @@ export default function Dashboard() {
         time,
         averageScore: data.totalQuestions > 0 ? Math.round((data.totalScore / data.totalQuestions) * 100) : 0,
     }));
-
 
     return {
       totalQuestionsAnswered,
@@ -253,12 +267,13 @@ export default function Dashboard() {
     downloadJson(reportData, `vaselearn-report_${timestamp}.json`);
   };
 
-  const isLoading = isLoadingSessions || isLoadingCustomGoals;
+  const isLoading = isLoadingSessions || isLoadingCustomGoals || isLoadingMistakes;
   
   if (isLoading) {
       return (
           <div className="grid gap-4 md:gap-8">
-              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-5">
+                  <Skeleton className="h-28" />
                   <Skeleton className="h-28" />
                   <Skeleton className="h-28" />
                   <Skeleton className="h-28" />
@@ -266,10 +281,7 @@ export default function Dashboard() {
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <Skeleton className="h-[400px]" />
-                  <div className="grid gap-4">
-                    <Skeleton className="h-[200px]" />
-                    <Skeleton className="h-[200px]" />
-                  </div>
+                  <Skeleton className="h-[400px]" />
               </div>
           </div>
       )
@@ -288,21 +300,21 @@ export default function Dashboard() {
     );
   }
 
-
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8">
-       {/* Top Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+      {/* Top Stat Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
-             <CardTitle className="text-sm font-medium">Subjects Practiced</CardTitle>
-             <BookCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Subjects Practiced</CardTitle>
+            <BookCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dashboardStats.uniqueSubjects}</div>
             <p className="text-xs text-muted-foreground">Unique topics covered</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Questions Answered</CardTitle>
@@ -313,6 +325,7 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Across all sessions</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Average Score</CardTitle>
@@ -320,13 +333,33 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dashboardStats.overallAverageScore}%</div>
-             <p className="text-xs text-muted-foreground">Your overall performance</p>
+            <p className="text-xs text-muted-foreground">Your overall performance</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Mistakes to Review</CardTitle>
+            <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalMistakes}</div>
+            <p className="text-xs text-muted-foreground">
+              {totalMistakes > 0 ? (
+                <Link href="/flashcards" className="text-blue-600 hover:underline">
+                  Study now →
+                </Link>
+              ) : (
+                'Keep practicing!'
+              )}
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Strongest Subject</CardTitle>
-             <Star className="h-4 w-4 text-muted-foreground" />
+            <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold truncate">{dashboardStats.bestSubject.topic}</div>
@@ -339,48 +372,92 @@ export default function Dashboard() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                      <CardTitle>Performance by Subject</CardTitle>
-                      <CardDescription>Your average score across different topics.</CardDescription>
-                  </div>
-                  <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExportReport}
-                  >
-                      <Download className="mr-2 h-4 w-4" />
-                      Export Report
-                  </Button>
-              </CardHeader>
-              <CardContent className="pl-2">
-                  <DashboardCharts chartData={dashboardStats.subjectStats} />
-              </CardContent>
-          </Card>
-           <Card>
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Study Consistency</CardTitle>
-                  <CardDescription>Questions answered per day over the last 30 days.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <ConsistencyChart data={dashboardStats.consistencyData} />
-              </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Performance by Subject</CardTitle>
+              <CardDescription>Your average score across different topics.</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportReport}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export Report
+            </Button>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <DashboardCharts chartData={dashboardStats.subjectStats} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" /> Study Consistency
+            </CardTitle>
+            <CardDescription>Questions answered per day over the last 30 days.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ConsistencyChart data={dashboardStats.consistencyData} />
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Recent Mistakes Section */}
+      {totalMistakes > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" /> Recent Mistakes
+                </CardTitle>
+                <CardDescription>Review your latest incorrect answers</CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/mistakes">View All</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {mistakes.slice(0, 3).map((mistake) => (
+                <div key={mistake.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                  <ShieldAlert className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium line-clamp-1">{mistake.question}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs px-2 py-0.5 bg-secondary rounded">
+                        {mistake.topic}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Your answer: {mistake.userAnswer}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Peak Performance Time */}
       <div className="grid grid-cols-1 gap-4">
-          <Card>
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" /> Peak Performance Time</CardTitle>
-                  <CardDescription>Your average quiz scores by time of day.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <PerformanceByTimeChart data={dashboardStats.performanceByTimeData} />
-              </CardContent>
-          </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" /> Peak Performance Time
+            </CardTitle>
+            <CardDescription>Your average quiz scores by time of day.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PerformanceByTimeChart data={dashboardStats.performanceByTimeData} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
-
-    

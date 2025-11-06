@@ -9,6 +9,8 @@ import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
 import { QuizQuestion } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { useUser, useFirestore } from '@/firebase'; // Add these imports
+import { addMistake } from '@/lib/mistakes'; // Add this import
 
 export default function QuizComponentInner({ 
   topic, 
@@ -21,6 +23,9 @@ export default function QuizComponentInner({
   clientType: string; 
   questionType: string; 
 }) {
+  const { user } = useUser(); // Add this
+  const firestore = useFirestore(); // Add this
+
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +38,7 @@ export default function QuizComponentInner({
   const [showSummary, setShowSummary] = useState(false);
   const router = useRouter();
 
+  // ... your existing useEffect and generateQuestions code stays the same ...
   useEffect(() => {
     const fetchSettingsAndGenerateQuestions = async () => {
       setLoadingMessage('Retrieving settings...');
@@ -132,6 +138,41 @@ export default function QuizComponentInner({
     }
   };
 
+
+  // Update the "Next Question" / "Finish Quiz" button onClick handler:
+  const handleNextQuestion = async () => {
+    const currentQ = questions[currentQuestion];
+    const userAnswer = userAnswers[currentQuestion];
+    const isCorrect = String(userAnswer) === String(currentQ.answer);
+
+    // Update score if correct
+    if (isCorrect) {
+      setScore(score + 1);
+    } else {
+      // Save incorrect answer to Firestore
+      if (user && firestore) {
+        try {
+          await addMistake(firestore, user.uid, {
+            question: currentQ.question,
+            userAnswer: String(userAnswer),
+            correctAnswer: String(currentQ.answer),
+            topic: topic, // Use the quiz topic
+          });
+        } catch (error) {
+          console.error('Error saving mistake:', error);
+          // Don't block the quiz flow if saving fails
+        }
+      }
+    }
+
+    // Move to next question or finish
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+    } else {
+      setIsComplete(true);
+    }
+  };
+
   if (loading || questions.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4">
@@ -187,17 +228,7 @@ export default function QuizComponentInner({
           </div>
 
           <button
-            onClick={() => {
-              if (String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer)) {
-                setScore(score + 1);
-              }
-              
-              if (currentQuestion < questions.length - 1) {
-                setCurrentQuestion(currentQuestion + 1);
-              } else {
-                setIsComplete(true);
-              }
-            }}
+            onClick={handleNextQuestion} // Use the new handler
             disabled={userAnswers[currentQuestion] === undefined}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
           >
