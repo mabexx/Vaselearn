@@ -16,24 +16,31 @@ export default function ConnectPage() {
   const router = useRouter();
 
   const handleConnect = async () => {
-    setLoading(true);
-    setError('');
+    try {
+      setLoading(true);
+      setError('');
 
-    const isValid = await validateApiKey(apiKey);
+      const isValid = await validateApiKey(apiKey);
 
-    if (isValid) {
-      try {
-        saveApiKey(apiKey);
+      if (isValid) {
+        await saveApiKey(apiKey);
         router.push('/practice/quiz');
-      } catch (error) {
-        setError('Failed to save settings. Please try again.');
-        console.error(error);
+      } else {
+        setError('Invalid API key. Please check your key and try again.');
       }
-    } else {
-      setError('Invalid API key. Please check your key and try again.');
+    } catch (error) {
+      console.error('Connection error:', error);
+      setError('Failed to connect. Please try again.');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setLoading(false);
+  // Handle Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && apiKey && !loading) {
+      handleConnect();
+    }
   };
 
   return (
@@ -54,6 +61,7 @@ export default function ConnectPage() {
               placeholder="Paste your API key here"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
+              onKeyPress={handleKeyPress}
             />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
