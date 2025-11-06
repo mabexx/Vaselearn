@@ -1,7 +1,9 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { firestore } from '@/firebase'; // Assuming firestore is exported from your firebase setup
+import { initializeFirebase } from '@/firebase';
+
+const { firestore } = initializeFirebase();
 
 const MODEL_STORAGE_KEY = 'aiStudioModel';
 const GEMMA_MODEL = 'gemma-3-27b-it';
