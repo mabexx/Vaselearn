@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,14 +9,21 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { validateApiKey, saveApiKey } from '@/lib/aistudio';
+import { useUser } from '@/firebase';
 
 export default function ConnectPage() {
+  const { user } = useUser();
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleConnect = async () => {
+    if (!user) {
+      setError('You must be logged in to save an API key.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -23,7 +31,7 @@ export default function ConnectPage() {
 
     if (isValid) {
       try {
-        saveApiKey(apiKey);
+        await saveApiKey(user.uid, apiKey);
         router.push('/practice/quiz');
       } catch (error) {
         setError('Failed to save settings. Please try again.');

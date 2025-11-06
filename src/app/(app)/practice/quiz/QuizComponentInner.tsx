@@ -42,8 +42,12 @@ export default function QuizComponentInner({
 
   useEffect(() => {
     const fetchSettingsAndGenerateQuestions = async () => {
+      if (!user) {
+        // user object might not be available immediately
+        return;
+      }
       setLoadingMessage('Retrieving settings...');
-      const key = getApiKey();
+      const key = await getApiKey(user.uid);
       const model = getModel();
 
       if (!key || !model) {
@@ -61,7 +65,7 @@ export default function QuizComponentInner({
     };
 
     fetchSettingsAndGenerateQuestions();
-  }, []);
+  }, [user]);
 
   const generateQuestions = async (apiKey: string, modelId: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);

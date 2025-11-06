@@ -1,7 +1,8 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { firestore } from '@/firebase'; // Assuming firestore is exported from your firebase setup
 
-const API_KEY_STORAGE_KEY = 'aiStudioApiKey';
 const MODEL_STORAGE_KEY = 'aiStudioModel';
 const GEMMA_MODEL = 'gemma-3-27b-it';
 
@@ -13,7 +14,6 @@ const GEMMA_MODEL = 'gemma-3-27b-it';
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Make a lightweight call to check if the API key is valid
     await genAI.getGenerativeModel({ model: GEMMA_MODEL }).generateContent('test');
     return true;
   } catch (error) {
@@ -23,30 +23,61 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
 }
 
 /**
- * Saves the given API key to the browser's local storage.
+ * Saves the given API key to the user's document in Firestore.
+ * @param userId The ID of the user.
  * @param apiKey The API key to save.
  */
-export function saveApiKey(apiKey: string): void {
+export async function saveApiKey(userId: string, apiKey: string): Promise<void> {
   try {
-    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    const userDocRef = doc(firestore, 'users', userId);
+    await updateDoc(userDocRef, { aiStudioApiKey: apiKey });
   } catch (error) {
-    console.error('Failed to save API key to local storage:', error);
+    console.error('Failed to save API key to Firestore:', error);
     throw new Error('Failed to save API key.');
   }
 }
 
 /**
- * Retrieves the API key from the browser's local storage.
+ * Retrieves the API key from the user's document in Firestore.
+ * This function is safe to use on the client-side.
+ * @param userId The ID of the user.
  * @returns The API key, or null if it's not set.
  */
-export function getApiKey(): string | null {
+export async function getApiKey(userId: string): Promise<string | null> {
   try {
-    return localStorage.getItem(API_KEY_STORAGE_KEY);
+    const userDocRef = doc(firestore, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists() && userDoc.data().aiStudioApiKey) {
+      return userDoc.data().aiStudioApiKey;
+    }
+    return null;
   } catch (error) {
-    console.error('Failed to retrieve API key from local storage:', error);
+    console.error('Failed to retrieve API key from Firestore:', error);
     return null;
   }
 }
+
+/**
+ * Retrieves the API key from the user's document in Firestore.
+ * This is intended for server-side use where you already have the db instance.
+ * @param db The Firestore database instance.
+ * @param userId The ID of the user.
+ * @returns The API key, or null if it's not set.
+ */
+export async function getApiKeyForServer(db: any, userId: string): Promise<string | null> {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists() && userDoc.data().aiStudioApiKey) {
+      return userDoc.data().aiStudioApiKey;
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to retrieve API key from Firestore:', error);
+    return null;
+  }
+}
+
 
 /**
  * Saves the given model to the browser's local storage.
@@ -54,7 +85,9 @@ export function getApiKey(): string | null {
  */
 export function saveModel(model: string): void {
   try {
-    localStorage.setItem(MODEL_STORAGE_KEY, model);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(MODEL_STORAGE_KEY, model);
+    }
   } catch (error) {
     console.error('Failed to save model to local storage:', error);
     throw new Error('Failed to save model.');
@@ -67,7 +100,10 @@ export function saveModel(model: string): void {
  */
 export function getModel(): string | null {
   try {
-    return localStorage.getItem(MODEL_STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(MODEL_STORAGE_KEY);
+    }
+    return null;
   } catch (error) {
     console.error('Failed to retrieve model from local storage:', error);
     return null;
