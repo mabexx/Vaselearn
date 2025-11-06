@@ -16,6 +16,7 @@ export interface BaseQuizQuestion {
   type: 'multiple_choice' | 'true_false' | 'matching_pairs' | 'case_based' | 'decision_tree';
   question: string;
   answer: any;
+  explanation?: string;
 }
 
 // Specific question types extending the base
@@ -75,6 +76,7 @@ export interface Mistake {
     userAnswer: string;
     correctAnswer: string;
     topic: string;
+    explanation?: string;
     createdAt: Timestamp;
     userId: string;
     practiceSessionId: string;

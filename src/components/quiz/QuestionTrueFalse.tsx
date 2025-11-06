@@ -9,15 +9,17 @@ interface Props {
   question: TrueFalseQuestion;
   onAnswer: (answer: boolean) => void;
   userAnswer?: boolean;
+  disabled?: boolean;
 }
 
-export default function QuestionTrueFalse({ question, onAnswer, userAnswer }: Props) {
+export default function QuestionTrueFalse({ question, onAnswer, userAnswer, disabled }: Props) {
   return (
     <div className="space-y-4">
       <p className="font-semibold text-lg">{question.question}</p>
       <RadioGroup
         value={userAnswer === undefined ? '' : String(userAnswer)}
         onValueChange={(value) => onAnswer(value === 'true')}
+        disabled={disabled}
       >
         <div className="flex items-center space-x-2 my-2">
           <RadioGroupItem value="true" id="q-opt-true" />

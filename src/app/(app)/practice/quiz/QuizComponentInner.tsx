@@ -3,25 +3,30 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getApiKey, getModel } from '@/lib/aistudio';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getModel } from '@/lib/aistudio';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
 import { QuizQuestion } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
-export default function QuizComponentInner({ 
-  topic, 
+export default function QuizComponentInner({
+  topic,
   limit, 
   clientType, 
-  questionType 
+  questionType,
+  apiKey,
 }: { 
   topic: string; 
   limit: number; 
   clientType: string; 
   questionType: string; 
+  apiKey: string;
 }) {
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
@@ -31,30 +36,27 @@ export default function QuizComponentInner({
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [showResult, setShowResult] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchSettingsAndGenerateQuestions = async () => {
-      setLoadingMessage('Retrieving settings...');
-      const key = getApiKey();
+    const generate = async () => {
+      setLoadingMessage('Generating quiz questions...');
       const model = getModel();
-
-      if (!key || !model) {
-        router.push('/practice/connect');
+      if (!model) {
+        // This should not happen if the flow is correct
+        router.push('/practice');
         return;
       }
-      
-      setApiKey(key);
       setModelId(model);
-      setLoadingMessage('Generating quiz questions...');
-      const generated = await generateQuestions(key, model);
+      const generated = await generateQuestions(apiKey, model);
       setQuestions(generated);
       setLoading(false);
       setLoadingMessage('');
     };
 
-    fetchSettingsAndGenerateQuestions();
-  }, []);
+    generate();
+  }, [apiKey]);
 
   const generateQuestions = async (apiKey: string, modelId: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -65,7 +67,7 @@ export default function QuizComponentInner({
       The target audience is learners associated with a "${clientType}".
       The quiz should be of the type "${questionType}".
 
-      Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple_choice", "true_false", or "case_based", and a "question" field.
+      Format your response as a valid JSON array of objects. Each object must have a "type" field that is one of "multiple_choice", "true_false", or "case_based", a "question" field, and an "explanation" field.
       - For "multiple_choice", include an "options" array and an "answer" field with the correct option.
       - For "true_false", include an "answer" field that is a boolean.
       - For "case_based", include a "prompt" field for the user to respond to and an "answer" field.
@@ -76,18 +78,21 @@ export default function QuizComponentInner({
           "type": "multiple_choice",
           "question": "What is the capital of France?",
           "options": ["London", "Berlin", "Paris", "Madrid"],
-          "answer": "Paris"
+          "answer": "Paris",
+          "explanation": "Paris is the capital of France."
         },
         {
           "type": "true_false",
           "question": "The earth is flat.",
-          "answer": false
+          "answer": false,
+          "explanation": "The earth is a sphere."
         },
         {
           "type": "case_based",
           "question": "A user is having trouble logging in. They have reset their password but still can't access their account.",
           "prompt": "What are the next steps to troubleshoot this issue?",
-          "answer": "Check if the user's account is locked, verify the email address they are using, and check for any recent security alerts."
+          "answer": "Check if the user's account is locked, verify the email address they are using, and check for any recent security alerts.",
+          "explanation": "These are the standard troubleshooting steps for login issues."
         }
       ]
 
@@ -132,6 +137,39 @@ export default function QuizComponentInner({
     }
   };
 
+  const handleAnswerSubmit = async () => {
+    setShowResult(true);
+
+    const isCorrect = String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer);
+    if (isCorrect) {
+      setScore(score + 1);
+    } else if (user && firestore) {
+      try {
+        await addDoc(collection(firestore, 'users', user.uid, 'mistakes'), {
+          question: questions[currentQuestion].question,
+          userAnswer: String(userAnswers[currentQuestion]),
+          correctAnswer: String(questions[currentQuestion].answer),
+          explanation: questions[currentQuestion].explanation,
+          topic: topic,
+          createdAt: serverTimestamp(),
+          userId: user.uid,
+          practiceSessionId: '', // TODO: Add practice session ID
+        });
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
+    }
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setShowResult(false);
+    } else {
+      setIsComplete(true);
+    }
+  };
+
   if (loading || questions.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4">
@@ -160,6 +198,7 @@ export default function QuizComponentInner({
                   setUserAnswers(newAnswers);
                 }}
                 userAnswer={userAnswers[currentQuestion] as string}
+                disabled={showResult}
               />
             )}
             {questions[currentQuestion]?.type === 'true_false' && (
@@ -171,6 +210,7 @@ export default function QuizComponentInner({
                   setUserAnswers(newAnswers);
                 }}
                 userAnswer={userAnswers[currentQuestion] as boolean}
+                disabled={showResult}
               />
             )}
             {questions[currentQuestion]?.type === 'case_based' && (
@@ -182,26 +222,38 @@ export default function QuizComponentInner({
                   setUserAnswers(newAnswers);
                 }}
                 userAnswer={userAnswers[currentQuestion] as string}
+                disabled={showResult}
               />
             )}
           </div>
 
+          {showResult && (
+            <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+              <h4 className="font-bold text-lg mb-2">
+                {String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer)
+                  ? 'Correct!'
+                  : 'Incorrect'}
+              </h4>
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Explanation:</span> {questions[currentQuestion].explanation}
+              </p>
+            </div>
+          )}
+
           <button
             onClick={() => {
-              if (String(userAnswers[currentQuestion]) === String(questions[currentQuestion].answer)) {
-                setScore(score + 1);
-              }
-              
-              if (currentQuestion < questions.length - 1) {
-                setCurrentQuestion(currentQuestion + 1);
+              if (showResult) {
+                handleNextQuestion();
               } else {
-                setIsComplete(true);
+                handleAnswerSubmit();
               }
             }}
             disabled={userAnswers[currentQuestion] === undefined}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
           >
-            {currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+            {showResult
+              ? (currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz')
+              : 'Submit Answer'}
           </button>
         </div>
       ) : (
@@ -215,6 +267,9 @@ export default function QuizComponentInner({
                   <p>Your answer: {String(userAnswers[index])}</p>
                   <p>Correct answer: {String(q.answer)}</p>
                   <p>Status: {String(userAnswers[index]) === String(q.answer) ? 'Correct' : 'Incorrect'}</p>
+                  <p className="text-sm text-gray-700 mt-2">
+                    <span className="font-semibold">Explanation:</span> {q.explanation}
+                  </p>
                 </div>
               ))}
               <Button onClick={() => setShowSummary(false)}>Back to Score</Button>
@@ -235,6 +290,7 @@ export default function QuizComponentInner({
                     setUserAnswers([]);
                     setScore(0);
                     setIsComplete(false);
+                    setShowResult(false);
                   }}
                 >
                   Restart Quiz

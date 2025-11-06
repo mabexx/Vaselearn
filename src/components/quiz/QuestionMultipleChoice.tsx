@@ -9,13 +9,14 @@ interface Props {
   question: MultipleChoiceQuestion;
   onAnswer: (answer: string) => void;
   userAnswer?: string;
+  disabled?: boolean;
 }
 
-export default function QuestionMultipleChoice({ question, onAnswer, userAnswer }: Props) {
+export default function QuestionMultipleChoice({ question, onAnswer, userAnswer, disabled }: Props) {
   return (
     <div className="space-y-4">
       <p className="font-semibold text-lg">{question.question}</p>
-      <RadioGroup value={userAnswer} onValueChange={onAnswer}>
+      <RadioGroup value={userAnswer} onValueChange={onAnswer} disabled={disabled}>
         {question.options.map((option, index) => (
           <div key={index} className="flex items-center space-x-2 my-2">
             <RadioGroupItem value={option} id={`q-opt-${index}`} />

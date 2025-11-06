@@ -9,9 +9,10 @@ interface Props {
   question: CaseBasedQuestion;
   onAnswer: (answer: string) => void;
   userAnswer?: string;
+  disabled?: boolean;
 }
 
-export default function QuestionCaseBased({ question, onAnswer, userAnswer }: Props) {
+export default function QuestionCaseBased({ question, onAnswer, userAnswer, disabled }: Props) {
   return (
     <div className="space-y-4">
       <div className="p-4 bg-muted rounded-md border">
@@ -26,6 +27,7 @@ export default function QuestionCaseBased({ question, onAnswer, userAnswer }: Pr
           value={userAnswer || ''}
           onChange={(e) => onAnswer(e.target.value)}
           className="min-h-[150px]"
+          disabled={disabled}
         />
       </div>
     </div>

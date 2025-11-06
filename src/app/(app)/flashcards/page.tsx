@@ -96,7 +96,7 @@ export default function FlashcardsPage() {
         <CarouselContent>
           {shuffledMistakes.map((mistake) => (
             <CarouselItem key={mistake.id}>
-              <Flashcard question={mistake.question} answer={mistake.correctAnswer} />
+              <Flashcard question={mistake.question} answer={mistake.correctAnswer} explanation={mistake.explanation} />
             </CarouselItem>
           ))}
         </CarouselContent>
