@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { validateApiKey, saveApiKey } from '@/lib/aistudio';
 
-export default function ConnectPage() {
+function ConnectPageContent() {
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
 
   const handleConnect = async () => {
@@ -31,7 +32,8 @@ export default function ConnectPage() {
     if (isValid) {
       try {
         await saveApiKey(user.uid, apiKey);
-        router.push('/practice');
+        const params = new URLSearchParams(searchParams);
+        router.push(`/practice/quiz?${params.toString()}`);
       } catch (error) {
         setError('Failed to save settings. Please try again.');
         console.error(error);
@@ -98,5 +100,13 @@ export default function ConnectPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function ConnectPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
+      <ConnectPageContent />
+    </Suspense>
   );
 }

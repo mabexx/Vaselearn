@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getApiKey, getModel } from '@/lib/aistudio';
+import { getModel } from '@/lib/aistudio';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
@@ -16,16 +16,17 @@ export default function QuizComponentInner({
   topic,
   limit, 
   clientType, 
-  questionType 
+  questionType,
+  apiKey,
 }: { 
   topic: string; 
   limit: number; 
   clientType: string; 
   questionType: string; 
+  apiKey: string;
 }) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [apiKey, setApiKey] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
@@ -39,32 +40,23 @@ export default function QuizComponentInner({
   const router = useRouter();
 
   useEffect(() => {
-    const fetchSettingsAndGenerateQuestions = async () => {
-      if (!user) {
-        // User is not logged in, wait for user object to be available
-        return;
-      }
-
-      setLoadingMessage('Retrieving settings...');
-      const key = await getApiKey(user.uid);
-      const model = getModel();
-
-      if (!key || !model) {
-        router.push('/practice/connect');
-        return;
-      }
-      
-      setApiKey(key);
-      setModelId(model);
+    const generate = async () => {
       setLoadingMessage('Generating quiz questions...');
-      const generated = await generateQuestions(key, model);
+      const model = getModel();
+      if (!model) {
+        // This should not happen if the flow is correct
+        router.push('/practice');
+        return;
+      }
+      setModelId(model);
+      const generated = await generateQuestions(apiKey, model);
       setQuestions(generated);
       setLoading(false);
       setLoadingMessage('');
     };
 
-    fetchSettingsAndGenerateQuestions();
-  }, [user]);
+    generate();
+  }, [apiKey]);
 
   const generateQuestions = async (apiKey: string, modelId: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);

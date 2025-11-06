@@ -1,8 +1,9 @@
-
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase';
+import { getApiKey } from '@/lib/aistudio';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,8 +18,14 @@ export default function PracticePage() {
   const [questionsAmount, setQuestionsAmount] = useState('10');
   const [questionsAmountError, setQuestionsAmountError] = useState('');
   const router = useRouter();
+  const { user } = useUser();
 
-  const handleStartQuiz = () => {
+  const handleStartQuiz = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     const amount = parseInt(questionsAmount, 10);
     if (isNaN(amount) || amount < 2 || amount > 30) {
       setQuestionsAmountError('only 2 upto 30 is allowed for performance issues');
@@ -33,7 +40,13 @@ export default function PracticePage() {
       model,
       limit: questionsAmount,
     });
-    router.push(`/practice/quiz?${params.toString()}`);
+
+    const apiKey = await getApiKey(user.uid);
+    if (apiKey) {
+      router.push(`/practice/quiz?${params.toString()}`);
+    } else {
+      router.push(`/practice/connect?${params.toString()}`);
+    }
   };
 
   return (
