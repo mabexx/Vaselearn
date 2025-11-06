@@ -1,9 +1,7 @@
-
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
-import { collection } from 'firebase/firestore';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { useMistakes } from '@/hooks/useMistakes';
 import {
   Carousel,
   CarouselContent,
@@ -15,29 +13,15 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Layers, ArrowRight } from 'lucide-react';
+import { Layers, ArrowRight } from 'lucide-react';
 import Flashcard from '@/components/flashcard';
-import { Mistake } from '@/lib/types';
 import Link from 'next/link';
 
 export default function FlashcardsPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { shuffledMistakes, isLoading } = useMistakes();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
-
-  const mistakesCollection = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'mistakes') : null),
-    [firestore, user]
-  );
-
-  const { data: mistakes, isLoading } = useCollection<Mistake>(mistakesCollection);
-
-  const shuffledMistakes = useMemo(() => {
-    if (!mistakes) return [];
-    return [...mistakes].sort(() => Math.random() - 0.5);
-  }, [mistakes]);
 
   useEffect(() => {
     if (!api) {
@@ -55,15 +39,15 @@ export default function FlashcardsPage() {
   if (isLoading) {
     return (
       <div className="w-full max-w-3xl mx-auto">
-         <div className="space-y-2 mb-8">
-            <Skeleton className="h-8 w-1/2" />
-            <Skeleton className="h-4 w-3/4" />
+        <div className="space-y-2 mb-8">
+          <Skeleton className="h-8 w-1/2" />
+          <Skeleton className="h-4 w-3/4" />
         </div>
         <Skeleton className="h-64 w-full" />
-         <div className="flex items-center justify-center gap-4 mt-8">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="h-10 w-24" />
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-10 w-24" />
         </div>
       </div>
     );
@@ -79,7 +63,9 @@ export default function FlashcardsPage() {
             Your flashcards are automatically created from mistakes you make in quizzes. Take a quiz to get started!
           </p>
           <Button asChild className="mt-6">
-            <Link href="/practice">Take a Quiz <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link href="/practice">
+              Take a Quiz <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </CardContent>
       </Card>
@@ -88,10 +74,12 @@ export default function FlashcardsPage() {
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-        <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold">Flashcard Review</h1>
-            <p className="text-muted-foreground">Reviewing {shuffledMistakes.length} mistake{shuffledMistakes.length > 1 && 's'} from your vault.</p>
-        </div>
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold">Flashcard Review</h1>
+        <p className="text-muted-foreground">
+          Reviewing {shuffledMistakes.length} mistake{shuffledMistakes.length > 1 && 's'} from your vault.
+        </p>
+      </div>
       <Carousel setApi={setApi} className="w-full">
         <CarouselContent>
           {shuffledMistakes.map((mistake) => (
