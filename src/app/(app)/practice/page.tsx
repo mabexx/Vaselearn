@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUser } from '@/firebase';
+import { getApiKey } from '@/lib/aistudio';
 
 export default function PracticePage() {
   const [topic, setTopic] = useState('');
@@ -17,14 +19,22 @@ export default function PracticePage() {
   const [questionsAmount, setQuestionsAmount] = useState('10');
   const [questionsAmountError, setQuestionsAmountError] = useState('');
   const router = useRouter();
+  const { user } = useUser();
 
-  const handleStartQuiz = () => {
+  const handleStartQuiz = async () => {
+    if (!user) {
+      // Handle user not logged in
+      return;
+    }
+
     const amount = parseInt(questionsAmount, 10);
     if (isNaN(amount) || amount < 2 || amount > 30) {
       setQuestionsAmountError('only 2 upto 30 is allowed for performance issues');
       return;
     }
     setQuestionsAmountError('');
+
+    const apiKey = await getApiKey(user.uid);
 
     const params = new URLSearchParams({
       topic,
@@ -33,7 +43,12 @@ export default function PracticePage() {
       model,
       limit: questionsAmount,
     });
-    router.push(`/practice/quiz?${params.toString()}`);
+
+    if (apiKey) {
+      router.push(`/practice/quiz?${params.toString()}`);
+    } else {
+      router.push(`/practice/connect?${params.toString()}`);
+    }
   };
 
   return (

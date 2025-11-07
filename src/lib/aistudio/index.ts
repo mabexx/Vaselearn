@@ -1,8 +1,13 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getApps, getApp, initializeApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
 
-const API_KEY_STORAGE_KEY = 'aiStudioApiKey';
-const MODEL_STORAGE_KEY = 'aiStudioModel';
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
+
 const GEMMA_MODEL = 'gemma-3-27b-it';
 
 /**
@@ -11,6 +16,9 @@ const GEMMA_MODEL = 'gemma-3-27b-it';
  * @returns A boolean indicating whether the key is valid.
  */
 export async function validateApiKey(apiKey: string): Promise<boolean> {
+  if (!apiKey) {
+    return false;
+  }
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     // Make a lightweight call to check if the API key is valid
@@ -23,53 +31,35 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
 }
 
 /**
- * Saves the given API key to the browser's local storage.
+ * Saves the given API key to the user's document in Firestore.
+ * @param userId The user's ID.
  * @param apiKey The API key to save.
  */
-export function saveApiKey(apiKey: string): void {
+export async function saveApiKey(userId: string, apiKey: string): Promise<void> {
   try {
-    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    const userDocRef = doc(db, 'users', userId);
+    await setDoc(userDocRef, { aiStudioApiKey: apiKey }, { merge: true });
   } catch (error) {
-    console.error('Failed to save API key to local storage:', error);
+    console.error('Failed to save API key to Firestore:', error);
     throw new Error('Failed to save API key.');
   }
 }
 
 /**
- * Retrieves the API key from the browser's local storage.
+ * Retrieves the API key from the user's document in Firestore.
+ * @param userId The user's ID.
  * @returns The API key, or null if it's not set.
  */
-export function getApiKey(): string | null {
+export async function getApiKey(userId: string): Promise<string | null> {
   try {
-    return localStorage.getItem(API_KEY_STORAGE_KEY);
-  } catch (error) {
-    console.error('Failed to retrieve API key from local storage:', error);
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      return userDoc.data()?.aiStudioApiKey || null;
+    }
     return null;
-  }
-}
-
-/**
- * Saves the given model to the browser's local storage.
- * @param model The model to save.
- */
-export function saveModel(model: string): void {
-  try {
-    localStorage.setItem(MODEL_STORAGE_KEY, model);
   } catch (error) {
-    console.error('Failed to save model to local storage:', error);
-    throw new Error('Failed to save model.');
-  }
-}
-
-/**
- * Retrieves the model from the browser's local storage.
- * @returns The model, or null if it's not set.
- */
-export function getModel(): string | null {
-  try {
-    return localStorage.getItem(MODEL_STORAGE_KEY);
-  } catch (error) {
-    console.error('Failed to retrieve model from local storage:', error);
+    console.error('Failed to retrieve API key from Firestore:', error);
     return null;
   }
 }
