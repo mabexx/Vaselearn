@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,32 +8,39 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { validateApiKey, saveApiKey } from '@/lib/aistudio';
+import { useUser } from '@/firebase'; // Import the useUser hook
 
-export default function ConnectPage() {
+function ConnectPageContents() {
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user, loading: userLoading } = useUser(); // Get the user object
 
   const handleConnect = async () => {
+    if (!user) {
+      setError("You must be logged in to connect your API key.");
+      return;
+    }
+
     setLoading(true);
     setError('');
 
-    const isValid = await validateApiKey(apiKey);
+    try {
+      const isValid = await validateApiKey(apiKey);
 
-    if (isValid) {
-      try {
-        saveApiKey(apiKey);
+      if (isValid) {
+        await saveApiKey(user.uid, apiKey);
         router.push('/practice/quiz');
-      } catch (error) {
-        setError('Failed to save settings. Please try again.');
-        console.error(error);
+      } else {
+        setError('Invalid API key. Please check your key and try again.');
       }
-    } else {
-      setError('Invalid API key. Please check your key and try again.');
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -85,11 +92,20 @@ export default function ConnectPage() {
           </Accordion>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleConnect} disabled={loading || !apiKey}>
+          <Button onClick={handleConnect} disabled={loading || userLoading || !apiKey}>
             {loading ? 'Connecting...' : 'Connect and Start Quiz'}
           </Button>
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+
+export default function ConnectPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConnectPageContents />
+    </Suspense>
   );
 }

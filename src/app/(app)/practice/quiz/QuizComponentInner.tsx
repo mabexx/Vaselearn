@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getApiKey, getModel } from '@/lib/aistudio';
+import { getApiKey } from '@/lib/aistudio';
+import { useUser } from '@/firebase';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
@@ -21,8 +22,8 @@ export default function QuizComponentInner({
   clientType: string; 
   questionType: string; 
 }) {
+  const { user } = useUser();
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [modelId, setModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -34,27 +35,30 @@ export default function QuizComponentInner({
   const router = useRouter();
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
     const fetchSettingsAndGenerateQuestions = async () => {
       setLoadingMessage('Retrieving settings...');
-      const key = getApiKey();
-      const model = getModel();
+      const key = await getApiKey(user.uid);
 
-      if (!key || !model) {
+      if (!key) {
         router.push('/practice/connect');
         return;
       }
       
       setApiKey(key);
-      setModelId(model);
       setLoadingMessage('Generating quiz questions...');
-      const generated = await generateQuestions(key, model);
+      const modelId = 'gemma-2-27b-it'; // Hardcoding the model for now
+      const generated = await generateQuestions(key, modelId);
       setQuestions(generated);
       setLoading(false);
       setLoadingMessage('');
     };
 
     fetchSettingsAndGenerateQuestions();
-  }, []);
+  }, [user]);
 
   const generateQuestions = async (apiKey: string, modelId: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(apiKey);
