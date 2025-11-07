@@ -15,12 +15,14 @@ export default function QuizComponentInner({
   topic, 
   limit, 
   clientType, 
-  questionType 
+  questionType,
+  model
 }: { 
   topic: string; 
   limit: number; 
   clientType: string; 
   questionType: string; 
+  model: string;
 }) {
   const { user } = useUser();
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -44,14 +46,20 @@ export default function QuizComponentInner({
       const key = await getApiKey(user.uid);
 
       if (!key) {
-        router.push('/practice/connect');
+        const params = new URLSearchParams({
+          topic,
+          limit: String(limit),
+          clientType,
+          questionType,
+          model,
+        });
+        router.push(`/practice/connect?${params.toString()}`);
         return;
       }
       
       setApiKey(key);
       setLoadingMessage('Generating quiz questions...');
-      const modelId = 'gemma-2-27b-it'; // Hardcoding the model for now
-      const generated = await generateQuestions(key, modelId);
+      const generated = await generateQuestions(key, model);
       setQuestions(generated);
       setLoading(false);
       setLoadingMessage('');

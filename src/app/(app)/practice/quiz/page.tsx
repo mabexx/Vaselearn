@@ -13,6 +13,7 @@ function QuizContent() {
   const limit = searchParams ? Number(searchParams.get('limit')) || 5 : 5;
   const clientType = searchParams ? searchParams.get('clientType') || 'default' : 'default';
   const questionType = searchParams ? searchParams.get('questionType') || 'mixed' : 'mixed';
+  const model = searchParams ? searchParams.get('model') || 'gemma-27b' : 'gemma-27b';
 
   return (
     <QuizComponentInner
@@ -20,6 +21,7 @@ function QuizContent() {
       limit={limit}
       clientType={clientType}
       questionType={questionType}
+      model={model}
     />
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -16,6 +16,7 @@ function ConnectPageContents() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { user, isUserLoading: userLoading } = useUser(); // Get the user object
+  const searchParams = useSearchParams();
 
   const handleConnect = async () => {
     if (!user) {
@@ -31,7 +32,8 @@ function ConnectPageContents() {
 
       if (isValid) {
         await saveApiKey(user.uid, apiKey);
-        router.push('/practice/quiz');
+        const params = new URLSearchParams(searchParams.toString());
+        router.push(`/practice/quiz?${params.toString()}`);
       } else {
         setError('Invalid API key. Please check your key and try again.');
       }
