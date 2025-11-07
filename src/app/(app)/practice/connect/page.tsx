@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { validateApiKey, saveApiKey } from '@/lib/aistudio';
+import { saveApiKey } from '@/lib/aistudio';
 
 export default function ConnectPage() {
   const [apiKey, setApiKey] = useState('');
@@ -15,24 +15,16 @@ export default function ConnectPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
     setLoading(true);
     setError('');
-
-    const isValid = await validateApiKey(apiKey);
-
-    if (isValid) {
-      try {
-        saveApiKey(apiKey);
-        router.push('/practice/quiz');
-      } catch (error) {
-        setError('Failed to save settings. Please try again.');
-        console.error(error);
-      }
-    } else {
-      setError('Invalid API key. Please check your key and try again.');
+    try {
+      saveApiKey(apiKey);
+      router.push('/practice/quiz');
+    } catch (error) {
+      setError('Failed to save API key. Please try again.');
+      console.error(error);
     }
-
     setLoading(false);
   };
 
