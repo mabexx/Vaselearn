@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { validateApiKey, saveApiKey } from '@/lib/aistudio';
+import { saveApiKey } from '@/lib/aistudio';
 
 export default function ConnectPage() {
   const [apiKey, setApiKey] = useState('');
