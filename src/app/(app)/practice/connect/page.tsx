@@ -15,7 +15,7 @@ function ConnectPageContents() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { user, loading: userLoading } = useUser(); // Get the user object
+  const { user, isUserLoading: userLoading } = useUser(); // Get the user object
 
   const handleConnect = async () => {
     if (!user) {
