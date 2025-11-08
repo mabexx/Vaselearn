@@ -53,11 +53,9 @@ export default function MistakeVaultPage() {
           </CardDescription>
         </div>
         <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-          <SelectTrigger asChild>
-            <Button variant="outline" size="icon" className="w-10 h-10">
-              <FilterIcon className="h-4 w-4" />
-              <span className="sr-only">Sort mistakes</span>
-            </Button>
+          <SelectTrigger className="w-10 h-10 p-0">
+            <FilterIcon className="h-4 w-4 mx-auto" />
+            <span className="sr-only">Sort mistakes</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="createdAt">
