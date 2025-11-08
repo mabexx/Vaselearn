@@ -89,13 +89,18 @@ export default function HomePage() {
     return { quickStats: stats, mistakeVaultSubjects: subjects };
   }, [practiceSessions, mistakes]);
 
-  // TODO: Implement dynamic daily goals fetching and progress tracking.
-  const dailyGoals = [
-      { text: 'Complete 3 Quizzes', current: 1, target: 3 },
-      { text: 'Review 10 Flashcards', current: 5, target: 10 },
-      { text: 'Study for 30 minutes', current: 30, target: 30 },
-  ];
+  const dailyGoals = useMemo(() => {
+    const today = new Date();
+    const quizzesToday = practiceSessions?.filter(session =>
+        isSameDay((session.createdAt as Timestamp).toDate(), today)
+    ).length || 0;
 
+    return [
+      { text: 'Complete 1 Quiz', current: Math.min(quizzesToday, 1), target: 1, icon: <BookCheck className="h-5 w-5 text-green-500" /> },
+    ];
+  }, [practiceSessions]);
+
+  const allGoalsCompleted = dailyGoals.every(goal => goal.current >= goal.target);
   const isLoading = isUserLoading || isLoadingSessions || isLoadingMistakes;
 
   if (isLoading) {
@@ -193,13 +198,16 @@ export default function HomePage() {
         <Card>
             <CardHeader>
                 <CardTitle>Daily Goals</CardTitle>
-                 <CardDescription>You&apos;re halfway there, keep it up!</CardDescription>
+                 <CardDescription>
+                    {allGoalsCompleted ? "Great job! You've completed all your goals." : "Keep going, you're on the right track!"}
+                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {dailyGoals.map((goal, index) => (
                     <div key={index}>
-                        <div className="flex justify-between items-center mb-1">
-                            <p className="text-sm font-medium">{goal.text}</p>
+                         <div className="flex items-center gap-3 mb-2">
+                            {goal.icon}
+                            <p className="text-sm font-medium flex-1">{goal.text}</p>
                             <p className="text-sm text-muted-foreground">{goal.current}/{goal.target}</p>
                         </div>
                         <Progress value={(goal.current/goal.target)*100} />
