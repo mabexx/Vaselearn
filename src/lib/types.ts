@@ -78,6 +78,8 @@ export interface Mistake {
     createdAt: Timestamp;
     userId: string;
     practiceSessionId: string;
+    tags: string[];
+    difficulty: string;
 }
 
 export interface QuizFeedback {

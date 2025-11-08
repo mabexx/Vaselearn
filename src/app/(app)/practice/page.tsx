@@ -13,7 +13,6 @@ export default function PracticePage() {
   const [topic, setTopic] = useState('');
   const [questionType, setQuestionType] = useState('multiple-choice');
   const [difficulty, setDifficulty] = useState('neutral');
-  const [model, setModel] = useState('gemma-27b');
   const [questionsAmount, setQuestionsAmount] = useState('10');
   const [questionsAmountError, setQuestionsAmountError] = useState('');
   const router = useRouter();
@@ -30,7 +29,7 @@ export default function PracticePage() {
       topic,
       questionType,
       difficulty,
-      model,
+      model: 'gemini-2.5-flash-lite',
       limit: questionsAmount,
     });
     router.push(`/practice/quiz?${params.toString()}`);
@@ -79,18 +78,6 @@ export default function PracticePage() {
                 <SelectItem value="neutral">Neutral</SelectItem>
                 <SelectItem value="hard">Hard</SelectItem>
                 <SelectItem value="very-hard">Very Hard</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="model">AI Model</Label>
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger id="model">
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gemma-27b">Gemma 27B (Recommended)</SelectItem>
-                <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash lite</SelectItem>
               </SelectContent>
             </Select>
           </div>
