@@ -49,7 +49,7 @@ const featureCards = [
 ]
 
 export default function HomePage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const practiceSessionsCollection = useMemoFirebase(() =>
@@ -105,7 +105,30 @@ export default function HomePage() {
 
   }, [practiceSessions, mistakes]);
 
-  const isLoading = isLoadingSessions || isLoadingMistakes;
+  const isLoading = isUserLoading || isLoadingSessions || isLoadingMistakes;
+
+  if (isLoading) {
+    return (
+      <div className="flex w-full flex-col gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 p-8 rounded-xl bg-card border flex flex-col justify-center">
+            <Skeleton className="h-12 w-3/4 mb-4" />
+            <Skeleton className="h-8 w-1/2" />
+          </div>
+          <Card className="flex flex-col justify-center">
+            <CardHeader>
+              <CardTitle>Quick Stats</CardTitle>
+              <CardDescription>Your immediate progress at a glance.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Skeleton className="h-10 w-3/4" />
+              <Skeleton className="h-10 w-1/2" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -113,7 +136,7 @@ export default function HomePage() {
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 p-8 rounded-xl bg-card border flex flex-col justify-center">
                 <h1 className="text-4xl md:text-5xl font-bold">
-                Welcome back!
+                Welcome back, {user?.displayName || 'Student'}!
                 </h1>
                 <div className="mt-8 flex flex-wrap gap-4">
                 <Button asChild size="lg">
@@ -130,13 +153,7 @@ export default function HomePage() {
                     <CardDescription>Your immediate progress at a glance.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {isLoading ? (
-                    <>
-                      <Skeleton className="h-10 w-3/4" />
-                      <Skeleton className="h-10 w-1/2" />
-                    </>
-                  ) : (
-                    <>
+                  <>
                     <div className="flex items-center gap-4">
                         <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/50">
                             <Repeat className="h-6 w-6 text-indigo-500" />
@@ -156,7 +173,6 @@ export default function HomePage() {
                         </div>
                     </div>
                     </>
-                  )}
                 </CardContent>
             </Card>
        </div>

@@ -14,6 +14,7 @@ function QuizContent() {
   const clientType = searchParams ? searchParams.get('clientType') || 'default' : 'default';
   const questionType = searchParams ? searchParams.get('questionType') || 'mixed' : 'mixed';
   const modelId = searchParams ? searchParams.get('model') || 'gemini-2.5-flash' : 'gemini-2.5-flash';
+  const difficulty = searchParams ? searchParams.get('difficulty') || 'neutral' : 'neutral';
 
   return (
     <QuizComponentInner
@@ -22,6 +23,7 @@ function QuizContent() {
       clientType={clientType}
       questionType={questionType}
       modelId={modelId}
+      difficulty={difficulty}
     />
   );
 }
