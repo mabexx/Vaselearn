@@ -8,11 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, ThumbsDown, ThumbsUp, CalendarIcon, TagIcon, BarChartIcon } from 'lucide-react';
+import { ShieldAlert, ThumbsDown, ThumbsUp, CalendarIcon, TagIcon, FilterIcon } from 'lucide-react';
 import { Mistake } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-type SortOption = 'createdAt' | 'subject' | 'difficulty';
+type SortOption = 'createdAt' | 'subject';
 
 export default function MistakeVaultPage() {
   const { user } = useUser();
@@ -34,8 +35,6 @@ export default function MistakeVaultPage() {
           const tagA = a.tags?.[0] || '';
           const tagB = b.tags?.[0] || '';
           return tagA.localeCompare(tagB);
-        case 'difficulty':
-          return a.difficulty.localeCompare(b.difficulty);
         case 'createdAt':
         default:
           return (b.createdAt.seconds - a.createdAt.seconds);
@@ -53,33 +52,28 @@ export default function MistakeVaultPage() {
             Review questions you've previously answered incorrectly.
           </CardDescription>
         </div>
-        <div className="w-48">
-          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-            <SelectTrigger id="sort-mistakes">
-              <SelectValue placeholder="Sort by..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span>Sort by Date</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="subject">
-                <div className="flex items-center gap-2">
-                  <TagIcon className="h-4 w-4" />
-                  <span>Sort by Subject</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="difficulty">
-                <div className="flex items-center gap-2">
-                  <BarChartIcon className="h-4 w-4" />
-                  <span>Sort by Difficulty</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+          <SelectTrigger asChild>
+            <Button variant="outline" size="icon" className="w-10 h-10">
+              <FilterIcon className="h-4 w-4" />
+              <span className="sr-only">Sort mistakes</span>
+            </Button>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="createdAt">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4" />
+                <span>Sort by Date</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="subject">
+              <div className="flex items-center gap-2">
+                <TagIcon className="h-4 w-4" />
+                <span>Sort by Subject</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -100,9 +94,9 @@ export default function MistakeVaultPage() {
               <AccordionItem key={mistake.id} value={mistake.id}>
                 <AccordionTrigger>
                   <div className="flex justify-between items-center w-full pr-4">
-                    <div className="text-left">
+                    <div className="text-left w-full">
                       <p className="font-semibold">{mistake.question}</p>
-                      <div className="text-sm text-muted-foreground mt-1 space-x-2">
+                      <div className="flex flex-wrap gap-2 mt-2">
                         <Badge variant="outline">Topic: {mistake.topic}</Badge>
                         <Badge variant="secondary">Difficulty: {mistake.difficulty}</Badge>
                         {mistake.tags && mistake.tags.map(tag => <Badge key={tag} variant="default">{tag}</Badge>)}
