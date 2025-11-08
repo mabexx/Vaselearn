@@ -12,6 +12,7 @@ import { ShieldAlert, ThumbsDown, ThumbsUp, CalendarIcon, TagIcon, FilterIcon } 
 import { Mistake } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 type SortOption = 'createdAt' | 'subject';
 
@@ -52,11 +53,15 @@ export default function MistakeVaultPage() {
             Review questions you've previously answered incorrectly.
           </CardDescription>
         </div>
-        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-          <SelectTrigger className="w-10 h-10 p-0">
-            <FilterIcon className="h-4 w-4 mx-auto" />
-            <span className="sr-only">Sort mistakes</span>
-          </SelectTrigger>
+        <div className="flex items-center gap-4">
+          <Button asChild>
+            <Link href="/mistake-vault/retake">Retake a Quiz</Link>
+          </Button>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+            <SelectTrigger className="w-10 h-10 p-0">
+              <FilterIcon className="h-4 w-4 mx-auto" />
+              <span className="sr-only">Sort mistakes</span>
+            </SelectTrigger>
           <SelectContent>
             <SelectItem value="createdAt">
               <div className="flex items-center gap-2">
@@ -72,6 +77,7 @@ export default function MistakeVaultPage() {
             </SelectItem>
           </SelectContent>
         </Select>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
