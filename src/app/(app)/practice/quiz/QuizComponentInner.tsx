@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -14,20 +15,24 @@ import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
 
-export default function QuizComponentInner({ 
-  topic, 
-  limit, 
-  clientType, 
-  questionType,
-  difficulty,
-  modelId
-}: { 
-  topic: string; 
-  limit: number; 
-  clientType: string; 
-  questionType: string;
-  difficulty: string;
-  modelId: string;
+export default function QuizComponentInner({
+  topic: initialTopic = '',
+  limit: initialLimit = 10,
+  clientType = 'Student',
+  questionType = 'multiple-choice',
+  difficulty = 'neutral',
+  modelId = 'gemini-2.5-flash-lite',
+  retakeMistakes = [],
+  context = ''
+}: {
+  topic?: string;
+  limit?: number;
+  clientType?: string;
+  questionType?: string;
+  difficulty?: string;
+  modelId?: string;
+  retakeMistakes?: Mistake[];
+  context?: string;
 }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,11 +47,16 @@ export default function QuizComponentInner({
   const { user, isUserLoading } = useUser();
   const db = getFirestore();
 
-  const generateQuestions = useCallback(async (key: string, model: string): Promise<QuizQuestion[]> => {
+  const isRetakeMode = retakeMistakes.length > 0;
+  const topic = isRetakeMode ? retakeMistakes[0]?.topic || 'Retake Quiz' : initialTopic;
+  const limit = isRetakeMode ? retakeMistakes.length : initialLimit;
+
+  const generateQuestions = useCallback(async (key: string, model: string, context?: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(key);
     const aiModel = genAI.getGenerativeModel({ model });
     const prompt = `
       Generate exactly ${limit} quiz questions about the topic "${topic}".
+      ${context ? `Use the following questions as context to generate similar questions, but do not repeat them verbatim: \n${context}` : ''}
       The target audience is learners associated with a "${clientType}".
       The quiz should contain questions of the type "${questionType}" with a "${difficulty}" difficulty.
       Format your response as a valid JSON array of objects. Each object must have a "type" field ("multiple_choice", "true_false", or "case_based"), a "question" field, and an "answer" field.
@@ -76,7 +86,18 @@ export default function QuizComponentInner({
       return;
     }
     if (!user) {
-      router.push('/login'); // Redirect if user is not logged in after check
+      router.push('/login');
+      return;
+    }
+
+    if (isRetakeMode) {
+      const retakeQuestions = retakeMistakes.map(m => ({
+        ...m,
+        answer: m.correctAnswer
+      })) as QuizQuestion[];
+      setQuestions(retakeQuestions);
+      setUserAnswers(new Array(retakeQuestions.length).fill(undefined));
+      setLoading(false);
       return;
     }
 
@@ -91,7 +112,7 @@ export default function QuizComponentInner({
       setApiKey(key);
       setLoadingMessage('Generating quiz questions...');
       try {
-        const generated = await generateQuestions(key, modelId);
+        const generated = await generateQuestions(key, modelId, context);
         if (generated.length > 0) {
           setQuestions(generated);
           setUserAnswers(new Array(generated.length).fill(undefined));
@@ -105,7 +126,7 @@ export default function QuizComponentInner({
       }
     };
     fetchSettingsAndGenerate();
-  }, [user, isUserLoading, modelId, topic, limit, clientType, questionType, difficulty, router, generateQuestions]);
+  }, [user, isUserLoading, modelId, topic, limit, clientType, questionType, difficulty, router, generateQuestions, isRetakeMode, retakeMistakes]);
 
   const calculateScore = () => {
     return userAnswers.reduce((score, userAnswer, index) => {
@@ -136,7 +157,7 @@ export default function QuizComponentInner({
   };
 
   const savePracticeSessionAndMistakes = async () => {
-    if (!user || !apiKey) {
+    if (!user || (!apiKey && !isRetakeMode)) {
       console.error("Save failed: User or API key is missing.");
       return;
     }
@@ -164,7 +185,7 @@ export default function QuizComponentInner({
 
         const mistakes = questions.reduce<Omit<Mistake, 'id'>[]>((acc, question, index) => {
             if (String(userAnswers[index]).toLowerCase() !== String(question.answer).toLowerCase()) {
-                acc.push({
+                const mistake: Omit<Mistake, 'id'> = {
                     question: question.question,
                     userAnswer: String(userAnswers[index] ?? ''),
                     correctAnswer: String(question.answer),
@@ -174,12 +195,17 @@ export default function QuizComponentInner({
                     userId: user.uid,
                     practiceSessionId: sessionRef.id,
                     tags: [],
-                });
+                    type: question.type,
+                };
+                if (question.type === 'multiple_choice') {
+                    mistake.options = (question as any).options;
+                }
+                acc.push(mistake);
             }
             return acc;
         }, []);
 
-        if (mistakes.length > 0) {
+        if (mistakes.length > 0 && apiKey) {
             const tags = await generateTagsForTopic(apiKey, topic);
             const batch = writeBatch(db);
             mistakes.forEach(mistake => {
