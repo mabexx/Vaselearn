@@ -44,11 +44,11 @@ function ExactRetakeQuizLoader() {
           .map(id => {
             const mistake = fetchedMistakes.find(m => m.id === id);
             if (!mistake) return null;
-            // This is the critical fix: ensure the object conforms to QuizQuestion
+            // Add the 'type' field if it's missing, which was the root cause of the UI bug.
+            // The 'answer' field is not needed here; QuizComponentInner handles it.
             return {
               ...mistake,
               type: mistake.type || 'multiple_choice', // Fallback for older data
-              answer: mistake.correctAnswer,
             };
           })
           .filter((m): m is Mistake => m !== null);
