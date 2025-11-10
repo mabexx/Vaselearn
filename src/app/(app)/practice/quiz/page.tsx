@@ -39,19 +39,29 @@ function ExactRetakeQuizLoader() {
           }
         }
 
-        // Re-order based on the original mistakeIds array and transform data
+        // Re-order based on the original mistakeIds array and perform a safe transformation
         const orderedAndTransformedMistakes = mistakeIds
           .map(id => {
             const mistake = fetchedMistakes.find(m => m.id === id);
             if (!mistake) return null;
-            // Add the 'type' field if it's missing, which was the root cause of the UI bug.
-            // The 'answer' field is not needed here; QuizComponentInner handles it.
+
+            // This is the critical fix: Safely determine the question type.
+            // A question is only multiple choice if it explicitly has an 'options' array.
+            // Otherwise, we default to a safe, simple type like 'true_false' and
+            // provide default values to prevent a crash, even if data is inconsistent.
+            let questionType = mistake.type;
+            if (!questionType) {
+                questionType = (mistake.options && mistake.options.length > 0) ? 'multiple_choice' : 'true_false';
+            }
+
             return {
               ...mistake,
-              type: mistake.type || 'multiple_choice', // Fallback for older data
+              type: questionType,
+              options: mistake.options || [], // Ensure options array always exists
+              // The 'answer' field is not needed here; QuizComponentInner handles mapping correctAnswer -> answer.
             };
           })
-          .filter((m): m is Mistake => m !== null);
+          .filter(m => m !== null) as Mistake[];
 
         setMistakes(orderedAndTransformedMistakes);
       } catch (error) {
