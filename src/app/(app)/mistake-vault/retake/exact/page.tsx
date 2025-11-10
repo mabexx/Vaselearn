@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -65,6 +65,11 @@ export default function ExactRetakePage() {
     }
   }, [mistakes, filterType, selectedSubjects, dateRange]);
 
+  useEffect(() => {
+    if (filterType === 'manual') return;
+    setSelectedMistakeIds(mistakesToDisplay.map(m => m.id));
+  }, [mistakesToDisplay, filterType]);
+
   const handleToggleSelection = (mistakeId: string) => {
     setSelectedMistakeIds(prev =>
       prev.includes(mistakeId)
@@ -87,7 +92,7 @@ export default function ExactRetakePage() {
       }, {} as Record<string, Mistake[]>);
 
       return (
-         <Accordion type="multiple" className="w-full space-y-4">
+         <Accordion type="single" collapsible className="w-full space-y-4">
               {Object.entries(grouped).map(([subject, mistakesInGroup]) => (
                 <AccordionItem key={subject} value={subject}>
                   <AccordionTrigger className="text-xl font-semibold">{subject}</AccordionTrigger>
