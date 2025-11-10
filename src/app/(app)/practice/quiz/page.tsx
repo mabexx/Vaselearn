@@ -21,20 +21,48 @@ function ExactRetakeQuizLoader() {
       if (!user || mistakeIds.length === 0) {
         setLoading(false);
         return;
-      };
-      const mistakesRef = collection(firestore, `users/${user.uid}/mistakes`);
-      // Firestore 'in' queries are limited to 10 items. For a more robust
-      // solution, we might need to batch these requests. For now, we'll
-      // assume the user won't select more than 10.
-      const q = query(mistakesRef, where(documentId(), 'in', mistakeIds));
-      const querySnapshot = await getDocs(q);
-      const fetchedMistakes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Mistake));
-      setMistakes(fetchedMistakes);
-      setLoading(false);
+      }
+      try {
+        setLoading(true);
+        const mistakesRef = collection(firestore, `users/${user.uid}/mistakes`);
+        const fetchedMistakes: Mistake[] = [];
+
+        // Firestore 'in' queries are limited to 30 items. Chunk the requests.
+        for (let i = 0; i < mistakeIds.length; i += 30) {
+          const chunk = mistakeIds.slice(i, i + 30);
+          if (chunk.length > 0) {
+            const q = query(mistakesRef, where(documentId(), 'in', chunk));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(doc => {
+              fetchedMistakes.push({ id: doc.id, ...doc.data() } as Mistake);
+            });
+          }
+        }
+
+        // Re-order based on the original mistakeIds array and transform data
+        const orderedAndTransformedMistakes = mistakeIds
+          .map(id => {
+            const mistake = fetchedMistakes.find(m => m.id === id);
+            if (!mistake) return null;
+            // This is the critical fix: ensure the object conforms to QuizQuestion
+            return {
+              ...mistake,
+              type: mistake.type || 'multiple_choice', // Fallback for older data
+              answer: mistake.correctAnswer,
+            };
+          })
+          .filter((m): m is Mistake => m !== null);
+
+        setMistakes(orderedAndTransformedMistakes);
+      } catch (error) {
+        console.error("Failed to fetch mistakes:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchMistakes();
-  }, [user, firestore, mistakeIds]);
+  }, [user, firestore, mistakeIds.join(',')]); // Depend on joined string to prevent re-renders
 
   if (loading) {
     return <div>Loading retake quiz...</div>;
