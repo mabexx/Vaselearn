@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import FlippableFlashcard from '@/components/FlippableFlashcard';
 import { isSameDay } from 'date-fns';
 
-const StatCard = ({ title, value, icon, progress, color }: { title: string; value: string | number; icon: React.ReactNode; progress: number, color: string }) => (
+const StatCard = ({ title, value, progress, color }: { title: string; value: string | number; progress: number, color: string }) => (
   <div>
     <div className="flex justify-between items-center mb-1">
       <span className="text-sm text-gray-400">{title}</span>

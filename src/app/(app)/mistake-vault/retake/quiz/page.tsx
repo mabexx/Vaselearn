@@ -59,7 +59,7 @@ export default function RetakeQuizPage() {
         if (!dateRange?.from || !dateRange?.to) return [];
         return mistakes.filter(m => {
           const createdAt = m.createdAt.toDate();
-          return createdAt >= dateRange.from! && createdAt <= date.to!;
+          return createdAt >= dateRange.from! && createdAt <= dateRange.to!;
         });
       default:
         return [];
