@@ -58,7 +58,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center">
-            <h1 className="text-3xl font-bold">Welcome Back to Vaselearn</h1>
+            <h1 className="text-3xl font-bold">Welcome Back to vasic</h1>
             <p className="text-muted-foreground">Sign in to continue your learning journey</p>
         </div>
         <Card>
@@ -111,7 +111,7 @@ export default function LoginPage() {
                     .
                 </Label>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading || !agreedToTerms}>
+              <Button type="submit" className="w-full btn-gradient font-bold" disabled={isLoading || !agreedToTerms}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
