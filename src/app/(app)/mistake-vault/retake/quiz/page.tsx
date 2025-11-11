@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 
 type FilterType = 'manual' | 'time' | 'subject';
 
-export default function SimilarRetakePage() {
+export default function RetakeQuizPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -74,13 +74,13 @@ export default function SimilarRetakePage() {
       return;
     }
     const mistakeContext = filteredMistakes.map(m => m.question).join('\n');
-    router.push(`/practice/quiz?retake=similar&limit=${questionsAmount}&context=${encodeURIComponent(mistakeContext)}`);
+    router.push(`/practice/quiz?retake=true&limit=${questionsAmount}&context=${encodeURIComponent(mistakeContext)}`);
   };
 
   return (
     <Card className="w-full max-w-4xl mx-auto my-8">
       <CardHeader>
-        <CardTitle>Similar Retake - Select Context</CardTitle>
+        <CardTitle>Retake Quiz - Select Context</CardTitle>
         <CardDescription>
           Choose the mistakes that will be used as context for your new AI-generated quiz.
         </CardDescription>

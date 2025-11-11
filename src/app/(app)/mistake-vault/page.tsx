@@ -55,7 +55,7 @@ export default function MistakeVaultPage() {
         </div>
         <div className="flex items-center gap-4">
           <Button asChild>
-            <Link href="/mistake-vault/retake">Retake a Quiz</Link>
+            <Link href="/mistake-vault/retake/quiz">Retake a Quiz</Link>
           </Button>
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
             <SelectTrigger className="w-10 h-10 p-0">
