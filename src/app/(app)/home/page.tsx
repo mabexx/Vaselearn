@@ -3,7 +3,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Book, BrainCircuit, LayoutDashboard, Target } from 'lucide-react';
+import { ArrowRight, Book, BrainCircuit, LayoutDashboard, Target, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -113,11 +113,6 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8 text-white">
-      <div>
-        <h1 className="text-3xl font-bold">Welcome back, {user?.displayName || 'Student'}!</h1>
-        <p className="text-gray-400">Let's make some progress today.</p>
-      </div>
-
       <div className="p-6 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 flex justify-between items-center">
           <div>
               <h2 className="text-2xl font-bold">Ready for a Challenge?</h2>
@@ -143,7 +138,7 @@ export default function HomePage() {
 
           <Card className="bg-gray-900 border-gray-700 col-span-1 lg:col-span-2">
               <CardHeader>
-                  <CardTitle>Flashcard Quickie</CardTitle>
+                  <CardTitle>Flashcards</CardTitle>
                   <CardDescription>A quick review of your most recent mistakes. Click a card to flip it.</CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -157,6 +152,11 @@ export default function HomePage() {
                   <p className="text-gray-400 col-span-3 text-center py-10">No mistakes to review yet!</p>
                 )}
               </CardContent>
+              <div className="p-6 text-center">
+                <Button asChild variant="outline" className="border-gray-600 hover:bg-gray-700">
+                    <Link href="/mistake-vault">Go to Flashcards</Link>
+                </Button>
+              </div>
           </Card>
       </div>
        <Card className="bg-gray-900 border-gray-700 col-span-1">
@@ -168,7 +168,7 @@ export default function HomePage() {
               <ToolCard title="Dashboard" href="/dashboard" icon={<LayoutDashboard className="h-6 w-6 text-blue-400" />} />
               <ToolCard title="Practice" href="/practice" icon={<BrainCircuit className="h-6 w-6 text-green-400" />} />
               <ToolCard title="Goals" href="/goals" icon={<Target className="h-6 w-6 text-red-400" />} />
-              <ToolCard title="Flashcards" href="/mistake-vault" icon={<Book className="h-6 w-6 text-yellow-400" />} />
+              <ToolCard title="Mistake Vault" href="/mistake-vault" icon={<ShieldAlert className="h-6 w-6 text-yellow-400" />} />
           </CardContent>
       </Card>
     </div>
