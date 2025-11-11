@@ -3,16 +3,35 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowRight, BookCheck, Repeat, Target } from 'lucide-react';
+import { ArrowRight, Book, BrainCircuit, LayoutDashboard, Target } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, Timestamp } from 'firebase/firestore';
+import { collection, Timestamp, query, orderBy, limit } from 'firebase/firestore';
 import { PracticeSession, Mistake } from '@/lib/types';
-import { isSameDay } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import FlippableFlashcard from '@/components/FlippableFlashcard'; // Import the new component
+import FlippableFlashcard from '@/components/FlippableFlashcard';
+import { isSameDay } from 'date-fns';
+
+const StatCard = ({ title, value, icon, progress, color }: { title: string; value: string | number; icon: React.ReactNode; progress: number, color: string }) => (
+  <div>
+    <div className="flex justify-between items-center mb-1">
+      <span className="text-sm text-gray-400">{title}</span>
+      <span className="text-sm font-semibold text-white">{value}</span>
+    </div>
+    <Progress value={progress} className="h-2" indicatorClassName={color} />
+  </div>
+);
+
+const ToolCard = ({ title, href, icon }: { title: string; href: string; icon: React.ReactNode }) => (
+  <Link href={href} className="block bg-gray-800 hover:bg-gray-700 p-4 rounded-lg text-center transition-colors">
+    <div className="flex justify-center items-center mb-2">
+      {icon}
+    </div>
+    <span className="text-sm font-medium">{title}</span>
+  </Link>
+)
 
 export default function HomePage() {
   const { user, isUserLoading } = useUser();
@@ -31,115 +50,127 @@ export default function HomePage() {
 
   const { quickStats, recentMistakes } = useMemo(() => {
     const defaultStats = {
-        streak: 0,
-        mistakesToReview: 0,
+        completionRate: 0,
+        averageScore: 0,
+        studyStreak: 0,
     };
 
-    const stats = !practiceSessions ? defaultStats : (() => {
-      // Streak calculation logic remains the same...
-      const sortedSessions = [...practiceSessions].sort((a, b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis());
-      let currentStreak = 0;
-      // ... streak logic here for brevity
-      return {
-        streak: currentStreak,
-        mistakesToReview: mistakes?.length || 0,
-      };
-    })();
+    if (!practiceSessions || practiceSessions.length === 0) {
+      return { quickStats: defaultStats, recentMistakes: [] };
+    }
+
+    const totalSessions = practiceSessions.length;
+    const totalScore = practiceSessions.reduce((acc, session) => acc + session.score, 0);
+    const averageScore = Math.round(totalScore / totalSessions);
+    const completionRate = averageScore;
+
+    const sortedSessions = [...practiceSessions].sort((a, b) => (b.createdAt as Timestamp).toMillis() - (a.createdAt as Timestamp).toMillis());
+    let streak = 0;
+    if (sortedSessions.length > 0) {
+        streak = 1;
+        let lastDate = (sortedSessions[0].createdAt as Timestamp).toDate();
+        for (let i = 1; i < sortedSessions.length; i++) {
+            const currentDate = (sortedSessions[i].createdAt as Timestamp).toDate();
+            const nextDay = new Date(lastDate);
+            nextDay.setDate(nextDay.getDate() - 1);
+            if (isSameDay(currentDate, nextDay)) {
+                streak++;
+                lastDate = currentDate;
+            } else if (!isSameDay(currentDate, lastDate)) {
+                break;
+            }
+        }
+    }
 
     const sortedMistakes = !mistakes ? [] : [...mistakes].sort((a,b) => b.createdAt.seconds - a.createdAt.seconds);
 
-    return { quickStats: stats, recentMistakes: sortedMistakes.slice(0,3) };
+    return {
+      quickStats: {
+        completionRate,
+        averageScore,
+        studyStreak: streak,
+      },
+      recentMistakes: sortedMistakes.slice(0, 3)
+    };
   }, [practiceSessions, mistakes]);
 
-  const dailyGoals = useMemo(() => {
-    const today = new Date();
-    const quizzesToday = practiceSessions?.filter(session =>
-        isSameDay((session.createdAt as Timestamp).toDate(), today)
-    ).length || 0;
-
-    return [
-      { text: 'Complete 1 Quiz', current: Math.min(quizzesToday, 1), target: 1, icon: <BookCheck className="h-5 w-5 text-green-500" /> },
-    ];
-  }, [practiceSessions]);
-
-  const allGoalsCompleted = dailyGoals.every(goal => goal.current >= goal.target);
   const isLoading = isUserLoading || isLoadingSessions || isLoadingMistakes;
 
   if (isLoading) {
     return (
-        <div className="space-y-8">
-            <Skeleton className="h-48 w-full" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-64 w-full" />
-            </div>
-            <div>
-                <Skeleton className="h-12 w-1/4 mb-4" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                </div>
-            </div>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-1/3" />
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-32 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="p-8 rounded-xl bg-primary text-primary-foreground flex justify-between items-center">
+    <div className="space-y-8 text-white">
+      <div>
+        <h1 className="text-3xl font-bold">Welcome back, {user?.displayName || 'Student'}!</h1>
+        <p className="text-gray-400">Let's make some progress today.</p>
+      </div>
+
+      <div className="p-6 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 flex justify-between items-center">
           <div>
-              <h1 className="text-4xl md:text-5xl font-bold">
-                  Ready for a challenge?
-              </h1>
-              <p className="mt-2 text-lg">Engage with adaptive quizzes and master new concepts today!</p>
+              <h2 className="text-2xl font-bold">Ready for a Challenge?</h2>
+              <p className="mt-1 text-purple-200">Select a subject and difficulty to start a new quiz.</p>
           </div>
-          <Button asChild size="lg" className="bg-white text-primary hover:bg-gray-100">
-              <Link href="/practice">Start a Quiz <ArrowRight className="ml-2 h-5 w-5" /></Link>
+          <Button asChild size="lg" className="bg-white text-purple-700 hover:bg-gray-200 font-bold">
+              <Link href="/practice">Start Quiz</Link>
           </Button>
       </div>
 
-      {/* Stats and Goals Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card>
-              <CardHeader><CardTitle>Quick Stats</CardTitle></CardHeader>
-              <CardContent className="space-y-6">
-                  {/* Stats content remains the same */}
-              </CardContent>
-          </Card>
-          <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Card className="bg-gray-900 border-gray-700 col-span-1">
               <CardHeader>
-                  <CardTitle>Daily Goals</CardTitle>
-                   <CardDescription>{allGoalsCompleted ? "Great job!" : "Keep going!"}</CardDescription>
+                  <CardTitle>Quick Stats</CardTitle>
+                  <CardDescription>A visual overview of your recent performance.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                  {/* Goals content remains the same */}
+                <StatCard title="Completion Rate" value={`${quickStats.completionRate}%`} progress={quickStats.completionRate} color="bg-green-500" />
+                <StatCard title="Average Score" value={`${quickStats.averageScore}%`} progress={quickStats.averageScore} color="bg-purple-500" />
+                <StatCard title="Study Streak" value={`${quickStats.studyStreak} Days`} progress={(quickStats.studyStreak / 7) * 100} color="bg-yellow-500" />
+              </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-700 col-span-1 lg:col-span-2">
+              <CardHeader>
+                  <CardTitle>Flashcard Quickie</CardTitle>
+                  <CardDescription>A quick review of your most recent mistakes. Click a card to flip it.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recentMistakes.length > 0 ? recentMistakes.map((mistake) => (
+                  <FlippableFlashcard
+                    key={mistake.id}
+                    question={mistake.question}
+                    answer={mistake.correctAnswer}
+                  />
+                )) : (
+                  <p className="text-gray-400 col-span-3 text-center py-10">No mistakes to review yet!</p>
+                )}
               </CardContent>
           </Card>
       </div>
-
-      {/* Flashcard Quickie Review Section */}
-      <div>
-        <h2 className="text-3xl font-semibold mb-2">Flashcard Quickie</h2>
-        <p className="text-muted-foreground mb-6">A quick review of your most recent mistakes. Click a card to flip it.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {recentMistakes.length > 0 ? recentMistakes.map((mistake) => (
-            <FlippableFlashcard
-              key={mistake.id}
-              question={mistake.question}
-              answer={mistake.correctAnswer}
-            />
-          )) : (
-            <p className="text-muted-foreground col-span-3 text-center">No mistakes to review yet!</p>
-          )}
-        </div>
-         <div className="text-center mt-6">
-             <Button asChild variant="outline">
-                  <Link href="/mistake-vault">Go to Mistake Vault <ArrowRight className="ml-2 h-4 w-4" /></Link>
-              </Button>
-          </div>
-      </div>
+       <Card className="bg-gray-900 border-gray-700 col-span-1">
+          <CardHeader>
+              <CardTitle>Explore Your Toolkit</CardTitle>
+              <CardDescription>Discover tools designed to boost your learning.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <ToolCard title="Dashboard" href="/dashboard" icon={<LayoutDashboard className="h-6 w-6 text-blue-400" />} />
+              <ToolCard title="Practice" href="/practice" icon={<BrainCircuit className="h-6 w-6 text-green-400" />} />
+              <ToolCard title="Goals" href="/goals" icon={<Target className="h-6 w-6 text-red-400" />} />
+              <ToolCard title="Flashcards" href="/mistake-vault" icon={<Book className="h-6 w-6 text-yellow-400" />} />
+          </CardContent>
+      </Card>
     </div>
   );
 }

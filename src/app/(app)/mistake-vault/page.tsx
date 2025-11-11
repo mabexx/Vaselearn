@@ -4,8 +4,7 @@
 import { useMemo, useState } from 'react';
 import { collection } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShieldAlert, ThumbsDown, ThumbsUp, CalendarIcon, TagIcon, FilterIcon } from 'lucide-react';
@@ -45,86 +44,91 @@ export default function MistakeVaultPage() {
   }, [mistakes, sortBy]);
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <CardTitle>Mistake Vault</CardTitle>
-          <CardDescription>
+          <h1 className="text-3xl font-bold">Mistake Vault</h1>
+          <p className="text-gray-400">
             Review questions you've previously answered incorrectly.
-          </CardDescription>
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button asChild>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <Button asChild className="w-full md:w-auto btn-gradient font-bold">
             <Link href="/mistake-vault/retake/quiz">Retake a Quiz</Link>
           </Button>
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-            <SelectTrigger className="w-10 h-10 p-0">
-              <FilterIcon className="h-4 w-4 mx-auto" />
-              <span className="sr-only">Sort mistakes</span>
+            <SelectTrigger className="w-full md:w-auto bg-gray-800 border-gray-700">
+              <FilterIcon className="h-4 w-4 mr-2" />
+              <span>Sort by</span>
             </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="createdAt">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                <span>Sort by Date</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="subject">
-              <div className="flex items-center gap-2">
-                <TagIcon className="h-4 w-4" />
-                <span>Sort by Subject</span>
-              </div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
+            <SelectContent className="bg-gray-800 text-white border-gray-700">
+              <SelectItem value="createdAt">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>Date</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="subject">
+                <div className="flex items-center gap-2">
+                  <TagIcon className="h-4 w-4" />
+                  <span>Subject</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+
+      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-16 w-full bg-gray-700" />
+            <Skeleton className="h-16 w-full bg-gray-700" />
+            <Skeleton className="h-16 w-full bg-gray-700" />
           </div>
         ) : !sortedMistakes || sortedMistakes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-12 border-2 border-dashed rounded-lg">
-            <ShieldAlert className="h-16 w-16 mb-4" />
-            <p className="font-semibold">No mistakes found!</p>
+          <div className="flex flex-col items-center justify-center text-center text-gray-400 p-12">
+            <ShieldAlert className="h-16 w-16 mb-4 text-gray-500" />
+            <p className="font-semibold text-white">No mistakes found!</p>
             <p className="text-sm">When you get questions wrong in quizzes, they'll appear here for you to review.</p>
           </div>
         ) : (
-          <Accordion type="multiple" className="w-full">
+          <Accordion type="multiple" className="w-full space-y-2">
             {sortedMistakes.map((mistake) => (
-              <AccordionItem key={mistake.id} value={mistake.id}>
-                <AccordionTrigger>
-                  <div className="flex justify-between items-center w-full pr-4">
+              <AccordionItem key={mistake.id} value={mistake.id} className="bg-gray-900 rounded-lg px-4 border-b-0">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex justify-between items-center w-full">
                     <div className="text-left w-full">
                       <p className="font-semibold">{mistake.question}</p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="outline">Topic: {mistake.topic}</Badge>
-                        <Badge variant="secondary">Difficulty: {mistake.difficulty}</Badge>
-                        {mistake.tags && mistake.tags.map(tag => <Badge key={tag} variant="default">{tag}</Badge>)}
-                      </div>
                     </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-red-600">
-                      <ThumbsDown className="h-4 w-4" />
-                      <p>Your answer: {mistake.userAnswer}</p>
+                <AccordionContent className="pt-4">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-2 text-red-400">
+                      <ThumbsDown className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <div>
+                        <span className="font-semibold">Your answer:</span> {mistake.userAnswer}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-green-600">
-                      <ThumbsUp className="h-4 w-4" />
-                      <p>Correct answer: {mistake.correctAnswer}</p>
+                    <div className="flex items-start gap-2 text-green-400">
+                      <ThumbsUp className="h-4 w-4 mt-1 flex-shrink-0" />
+                      <div>
+                        <span className="font-semibold">Correct answer:</span> {mistake.correctAnswer}
+                      </div>
                     </div>
+                     <div className="flex flex-wrap gap-2 pt-2">
+                        <Badge className="bg-gray-700 text-gray-300">Topic: {mistake.topic}</Badge>
+                        <Badge className="bg-blue-900 text-blue-300">Difficulty: {mistake.difficulty}</Badge>
+                        {mistake.tags && mistake.tags.map(tag => <Badge key={tag} className="bg-purple-900 text-purple-300">{tag}</Badge>)}
+                      </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

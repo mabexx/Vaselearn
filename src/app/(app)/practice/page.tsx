@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ export default function PracticePage() {
   const handleStartQuiz = () => {
     const amount = parseInt(questionsAmount, 10);
     if (isNaN(amount) || amount < 2 || amount > 30) {
-      setQuestionsAmountError('only 2 upto 30 is allowed for performance issues');
+      setQuestionsAmountError('Only values between 2 and 30 are allowed.');
       return;
     }
     setQuestionsAmountError('');
@@ -36,13 +35,14 @@ export default function PracticePage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle>Create a New Quiz</CardTitle>
-          <CardDescription>Customize your quiz by selecting a topic, question type, and other options.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+      <div className="w-full max-w-2xl bg-gray-800 border border-gray-700 rounded-xl p-8 space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold">Create a New Quiz</h1>
+          <p className="text-gray-400 mt-2">Customize your quiz by selecting a topic, question type, and other options.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="topic">Topic</Label>
             <Input
@@ -51,33 +51,19 @@ export default function PracticePage() {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               required
+              className="bg-gray-700 border-gray-600 placeholder-gray-500"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="questionType">Question Type</Label>
             <Select value={questionType} onValueChange={setQuestionType}>
-              <SelectTrigger id="questionType">
+              <SelectTrigger id="questionType" className="bg-gray-700 border-gray-600">
                 <SelectValue placeholder="Select a question type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 text-white border-gray-700">
                 <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
                 <SelectItem value="true-false">True/False</SelectItem>
                 <SelectItem value="case-based">Case-Based (Short Answer)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="difficulty">Difficulty</Label>
-            <Select value={difficulty} onValueChange={setDifficulty}>
-              <SelectTrigger id="difficulty">
-                <SelectValue placeholder="Select a difficulty" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="very-easy">Very Easy</SelectItem>
-                <SelectItem value="easy">Easy</SelectItem>
-                <SelectItem value="neutral">Neutral</SelectItem>
-                <SelectItem value="hard">Hard</SelectItem>
-                <SelectItem value="very-hard">Very Hard</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -89,21 +75,33 @@ export default function PracticePage() {
               value={questionsAmount}
               onChange={(e) => {
                 setQuestionsAmount(e.target.value);
-                if (questionsAmountError) {
-                  setQuestionsAmountError('');
-                }
+                if (questionsAmountError) setQuestionsAmountError('');
               }}
-              className={questionsAmountError ? 'border-red-500' : ''}
+              className={`bg-gray-700 border-gray-600 ${questionsAmountError ? 'border-red-500' : ''}`}
             />
-            {questionsAmountError && <p className="text-sm text-red-500">{questionsAmountError}</p>}
+             {questionsAmountError && <p className="text-sm text-red-500 mt-1">{questionsAmountError}</p>}
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleStartQuiz} disabled={!topic}>
-            Start Quiz
-          </Button>
-        </CardFooter>
-      </Card>
+          <div className="space-y-2">
+            <Label htmlFor="difficulty">Difficulty</Label>
+            <Select value={difficulty} onValueChange={setDifficulty}>
+              <SelectTrigger id="difficulty" className="bg-gray-700 border-gray-600">
+                <SelectValue placeholder="Select a difficulty" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 text-white border-gray-700">
+                <SelectItem value="very-easy">Very Easy</SelectItem>
+                <SelectItem value="easy">Easy</SelectItem>
+                <SelectItem value="neutral">Neutral</SelectItem>
+                <SelectItem value="hard">Hard</SelectItem>
+                <SelectItem value="very-hard">Very Hard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Button onClick={handleStartQuiz} disabled={!topic} className="w-full btn-gradient font-bold text-lg py-6">
+          Start Quiz
+        </Button>
+      </div>
     </div>
   );
 }
