@@ -168,6 +168,7 @@ export default function HomePage() {
               <ToolCard title="Dashboard" href="/dashboard" icon={<LayoutDashboard className="h-6 w-6 text-blue-400" />} />
               <ToolCard title="Practice" href="/practice" icon={<BrainCircuit className="h-6 w-6 text-green-400" />} />
               <ToolCard title="Goals" href="/goals" icon={<Target className="h-6 w-6 text-red-400" />} />
+              <ToolCard title="Mistake Vault" href="/mistake-vault" icon={<ShieldAlert className="h-6 w-6 text-yellow-400" />} />
           </CardContent>
       </Card>
     </div>

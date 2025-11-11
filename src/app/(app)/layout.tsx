@@ -21,7 +21,9 @@ const navItems = [
   { href: '/home', icon: Home, label: 'Home' },
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/practice', icon: Dumbbell, label: 'Practice' },
+  { href: '/mistake-vault', icon: ShieldAlert, label: 'Mistake Vault' },
   { href: '/flashcards', icon: BookOpen, label: 'Flashcards' },
+  { href: '/notes', icon: BookOpen, label: 'Notes' },
   { href: '/goals', icon: Goal, label: 'Goals' },
 ];
 
