@@ -61,7 +61,7 @@ export default function FlashcardsPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh]">
-        <Skeleton className="h-64 w-full max-w-lg rounded-xl bg-gray-800" />
+        <Skeleton className="h-96 w-full max-w-2xl rounded-xl bg-gray-800" />
         <Skeleton className="h-8 w-24 mt-4 bg-gray-800" />
       </div>
     );
@@ -78,13 +78,13 @@ export default function FlashcardsPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
+    <div className="flex flex-col items-center justify-center w-full h-[80vh] space-y-4">
         <h1 className="text-3xl font-bold text-center">Flashcard Review</h1>
         <p className="text-gray-400 text-center mb-4">
             Reviewing {sortedMistakes.length} mistakes from your vault.
         </p>
-      <Carousel setApi={setApi} className="w-full max-w-lg" orientation="horizontal">
-        <CarouselContent className="-ml-4 h-64">
+      <Carousel setApi={setApi} className="w-full max-w-2xl" orientation="horizontal">
+        <CarouselContent className="-ml-4 h-96">
           {sortedMistakes.map((mistake) => (
             <CarouselItem key={mistake.id} className="pl-4">
               <div className="p-1 h-full">
@@ -96,10 +96,10 @@ export default function FlashcardsPage() {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="absolute left-[-20px] top-1/2 -translate-y-1/2 fill-white">
+        <CarouselPrevious className="absolute left-[-50px] top-1/2 -translate-y-1/2 fill-white">
           <ArrowLeft className="h-6 w-6" />
         </CarouselPrevious>
-        <CarouselNext className="absolute right-[-20px] top-1/2 -translate-y-1/2 fill-white">
+        <CarouselNext className="absolute right-[-50px] top-1/2 -translate-y-1/2 fill-white">
           <ArrowRight className="h-6 w-6" />
         </CarouselNext>
       </Carousel>
