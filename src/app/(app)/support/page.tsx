@@ -48,7 +48,7 @@ export default function SupportPage() {
                         For issues that are not covered in the FAQ, please don't hesitate to email our support team directly. We'll get back to you as soon as possible.
                     </p>
                     <Button asChild>
-                        <a href="mailto:vasic@gmail.com">Email Support</a>
+                        <a href="mailto:vasics@gmail.com">Email Support</a>
                     </Button>
                 </div>
                 <div className="p-6 border rounded-lg bg-card">

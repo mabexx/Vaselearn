@@ -5,7 +5,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { collection } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, ArrowUp, ArrowDown } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Mistake } from '@/lib/types';
 import FlippableFlashcard from '@/components/FlippableFlashcard';
 import { Card, CardContent } from "@/components/ui/card"
@@ -83,11 +83,11 @@ export default function FlashcardsPage() {
         <p className="text-gray-400 text-center mb-4">
             Reviewing {sortedMistakes.length} mistakes from your vault.
         </p>
-      <Carousel setApi={setApi} className="w-full max-w-2xl h-full" orientation="vertical">
-        <CarouselContent className="h-full embla-container-vertical">
+      <Carousel setApi={setApi} className="w-full max-w-2xl" orientation="horizontal">
+        <CarouselContent className="-ml-4">
           {sortedMistakes.map((mistake) => (
-            <CarouselItem key={mistake.id} className="embla-slide-vertical">
-              <div className="p-1 h-full w-full">
+            <CarouselItem key={mistake.id} className="pl-4">
+              <div className="p-1 h-full">
                 <FlippableFlashcard
                   question={mistake.question}
                   answer={mistake.correctAnswer}
@@ -96,16 +96,12 @@ export default function FlashcardsPage() {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <div className="absolute top-1/2 -translate-y-1/2 left-4">
-            <Button variant="outline" size="icon" onClick={scrollPrev} className="rounded-full h-12 w-12">
-                <ArrowUp className="h-6 w-6" />
-            </Button>
-        </div>
-        <div className="absolute top-1/2 -translate-y-1/2 right-4">
-             <Button variant="outline" size="icon" onClick={scrollNext} className="rounded-full h-12 w-12">
-                <ArrowDown className="h-6 w-6" />
-            </Button>
-        </div>
+        <CarouselPrevious className="absolute left-[-50px] top-1/2 -translate-y-1/2 fill-white">
+          <ArrowLeft className="h-6 w-6" />
+        </CarouselPrevious>
+        <CarouselNext className="absolute right-[-50px] top-1/2 -translate-y-1/2 fill-white">
+          <ArrowRight className="h-6 w-6" />
+        </CarouselNext>
       </Carousel>
       <div className="py-2 text-center text-sm text-muted-foreground">
         Card {current} of {count}

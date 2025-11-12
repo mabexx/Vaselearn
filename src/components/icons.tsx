@@ -5,7 +5,7 @@ import React from 'react';
 export function Logo(props: React.HTMLAttributes<HTMLSpanElement>) {
   return (
     <span {...props} className="text-2xl font-bold tracking-tight">
-      vasic
+      vasics
     </span>
   );
 }
@@ -43,7 +43,7 @@ export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
 export function TelegramIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
+      xmlns="http://www.w.org/2000/svg"
       viewBox="0 0 24 24"
       fill="currentColor"
       {...props}

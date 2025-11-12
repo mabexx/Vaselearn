@@ -108,7 +108,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               </SheetContent>
             </Sheet>
             <div className="flex-1">
-              <h1 className="text-xl font-semibold sm:text-2xl">vasic</h1>
+              <h1 className="text-xl font-semibold sm:text-2xl">vasics</h1>
             </div>
              <div className="flex items-center gap-4">
                 <LanguageSelector />

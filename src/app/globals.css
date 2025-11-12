@@ -115,16 +115,4 @@
   .btn-gradient:hover {
     box-shadow: 0 0 15px #EC4899;
   }
-  .embla-container-vertical {
-    height: 100%;
-    scroll-snap-type: y mandatory;
-  }
-  .embla-slide-vertical {
-    flex: 0 0 100%;
-    min-height: 0;
-    scroll-snap-align: start;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 }

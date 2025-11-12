@@ -58,7 +58,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center">
-            <h1 className="text-3xl font-bold">Welcome Back to vasic</h1>
+            <h1 className="text-3xl font-bold">Welcome Back to vasics</h1>
             <p className="text-muted-foreground">Sign in to continue your learning journey</p>
         </div>
         <Card>
@@ -118,8 +118,8 @@ export default function LoginPage() {
             </form>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{' '}
-              <a href="http://t.me/vasickid" target="_blank" rel="noopener noreferrer" className="underline">
-                Contact us via Telegram @vasickid
+              <a href="http://t.me/vasicskid" target="_blank" rel="noopener noreferrer" className="underline">
+                Contact us via Telegram @vasicskid
               </a>
             </div>
           </CardContent>
