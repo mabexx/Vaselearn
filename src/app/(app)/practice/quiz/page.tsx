@@ -1,20 +1,20 @@
+
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-
-export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import QuizComponentInner from './QuizComponentInner';
 
-function QuizContent() {
+function QuizPageContent() {
   const searchParams = useSearchParams();
+  const retake = searchParams.get('retake');
 
-  const topic = searchParams ? searchParams.get('topic') || 'default-topic' : 'default-topic';
-  const limit = searchParams ? Number(searchParams.get('limit')) || 5 : 5;
-  const clientType = searchParams ? searchParams.get('clientType') || 'default' : 'default';
-  const questionType = searchParams ? searchParams.get('questionType') || 'mixed' : 'mixed';
-  const modelId = searchParams ? searchParams.get('model') || 'gemini-2.5-flash' : 'gemini-2.5-flash';
-  const difficulty = searchParams ? searchParams.get('difficulty') || 'neutral' : 'neutral';
+  const topic = searchParams.get('topic') || (retake ? 'Retake Quiz' : '');
+  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const clientType = searchParams.get('clientType') || 'Student';
+  const questionType = searchParams.get('questionType') || 'multiple-choice';
+  const difficulty = searchParams.get('difficulty') || 'neutral';
+  const modelId = searchParams.get('model') || 'gemini-2.5-flash-lite';
 
   return (
     <QuizComponentInner
@@ -22,16 +22,17 @@ function QuizContent() {
       limit={limit}
       clientType={clientType}
       questionType={questionType}
-      modelId={modelId}
       difficulty={difficulty}
+      modelId={modelId}
+      context={searchParams.get('context') || ''}
     />
   );
 }
 
 export default function QuizPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading quiz...</div>}>
-      <QuizContent />
+    <Suspense fallback={<div>Loading quiz...</div>}>
+      <QuizPageContent />
     </Suspense>
   );
 }

@@ -1,24 +1,12 @@
-import type { SVGProps } from "react";
 
-export function Logo(props: SVGProps<SVGSVGElement>) {
+import type { SVGProps } from "react";
+import React from 'react';
+
+export function Logo(props: React.HTMLAttributes<HTMLSpanElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-      <path d="M12 2v20" />
-      <path d="M12 12H2" />
-      <path d="M22 12h-5" />
-      <path d="M12 12a5 5 0 0 1-5-5" />
-      <path d="M12 12a5 5 0 0 0 5 5" />
-    </svg>
+    <span {...props} className="text-2xl font-bold tracking-tight">
+      vasics
+    </span>
   );
 }
 
@@ -26,7 +14,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
 export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
+      xmlns="http://www.w.org/2000/svg"
       viewBox="0 0 48 48"
       width="48px"
       height="48px"
@@ -55,7 +43,7 @@ export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
 export function TelegramIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
+      xmlns="http://www.w.org/2000/svg"
       viewBox="0 0 24 24"
       fill="currentColor"
       {...props}

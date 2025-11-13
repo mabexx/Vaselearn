@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -13,21 +14,24 @@ import { useUser } from '@/firebase';
 import QuestionMultipleChoice from '@/components/quiz/QuestionMultipleChoice';
 import QuestionTrueFalse from '@/components/quiz/QuestionTrueFalse';
 import QuestionCaseBased from '@/components/quiz/QuestionCaseBased';
+import { CheckCircle, XCircle } from 'lucide-react';
 
-export default function QuizComponentInner({ 
-  topic, 
-  limit, 
-  clientType, 
-  questionType,
-  difficulty,
-  modelId
-}: { 
-  topic: string; 
-  limit: number; 
-  clientType: string; 
-  questionType: string;
-  difficulty: string;
-  modelId: string;
+export default function QuizComponentInner({
+  topic = '',
+  limit = 10,
+  clientType = 'Student',
+  questionType = 'multiple-choice',
+  difficulty = 'neutral',
+  modelId = 'gemini-2.5-flash-lite',
+  context = ''
+}: {
+  topic?: string;
+  limit?: number;
+  clientType?: string;
+  questionType?: string;
+  difficulty?: string;
+  modelId?: string;
+  context?: string;
 }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,11 +46,12 @@ export default function QuizComponentInner({
   const { user, isUserLoading } = useUser();
   const db = getFirestore();
 
-  const generateQuestions = useCallback(async (key: string, model: string): Promise<QuizQuestion[]> => {
+  const generateQuestions = useCallback(async (key: string, model: string, context?: string): Promise<QuizQuestion[]> => {
     const genAI = new GoogleGenerativeAI(key);
     const aiModel = genAI.getGenerativeModel({ model });
     const prompt = `
       Generate exactly ${limit} quiz questions about the topic "${topic}".
+      ${context ? `Use the following questions as context to generate similar questions, but do not repeat them verbatim: \n${context}` : ''}
       The target audience is learners associated with a "${clientType}".
       The quiz should contain questions of the type "${questionType}" with a "${difficulty}" difficulty.
       Format your response as a valid JSON array of objects. Each object must have a "type" field ("multiple_choice", "true_false", or "case_based"), a "question" field, and an "answer" field.
@@ -76,7 +81,7 @@ export default function QuizComponentInner({
       return;
     }
     if (!user) {
-      router.push('/login'); // Redirect if user is not logged in after check
+      router.push('/login');
       return;
     }
 
@@ -91,7 +96,7 @@ export default function QuizComponentInner({
       setApiKey(key);
       setLoadingMessage('Generating quiz questions...');
       try {
-        const generated = await generateQuestions(key, modelId);
+        const generated = await generateQuestions(key, modelId, context);
         if (generated.length > 0) {
           setQuestions(generated);
           setUserAnswers(new Array(generated.length).fill(undefined));
@@ -105,7 +110,7 @@ export default function QuizComponentInner({
       }
     };
     fetchSettingsAndGenerate();
-  }, [user, isUserLoading, modelId, topic, limit, clientType, questionType, difficulty, router, generateQuestions]);
+  }, [user, isUserLoading, modelId, topic, limit, clientType, questionType, difficulty, router, generateQuestions, context]);
 
   const calculateScore = () => {
     return userAnswers.reduce((score, userAnswer, index) => {
@@ -164,7 +169,7 @@ export default function QuizComponentInner({
 
         const mistakes = questions.reduce<Omit<Mistake, 'id'>[]>((acc, question, index) => {
             if (String(userAnswers[index]).toLowerCase() !== String(question.answer).toLowerCase()) {
-                acc.push({
+                const mistake: Omit<Mistake, 'id'> = {
                     question: question.question,
                     userAnswer: String(userAnswers[index] ?? ''),
                     correctAnswer: String(question.answer),
@@ -174,12 +179,17 @@ export default function QuizComponentInner({
                     userId: user.uid,
                     practiceSessionId: sessionRef.id,
                     tags: [],
-                });
+                    type: question.type,
+                };
+                if (question.type === 'multiple_choice') {
+                    mistake.options = (question as any).options;
+                }
+                acc.push(mistake);
             }
             return acc;
         }, []);
 
-        if (mistakes.length > 0) {
+        if (mistakes.length > 0 && apiKey) {
             const tags = await generateTagsForTopic(apiKey, topic);
             const batch = writeBatch(db);
             mistakes.forEach(mistake => {
@@ -203,10 +213,10 @@ export default function QuizComponentInner({
 
   if (loading || isUserLoading || questions.length === 0) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4 text-center">
+      <div className="flex flex-col justify-center items-center min-h-screen text-lg font-medium p-4 text-center text-gray-300">
         <p>{loadingMessage}</p>
         {!loading && !isUserLoading && (
-          <Button onClick={() => router.push('/practice')} className="mt-4">
+          <Button onClick={() => router.push('/practice')} className="mt-4 btn-gradient font-bold">
             Back to Practice
           </Button>
         )}
@@ -217,12 +227,12 @@ export default function QuizComponentInner({
   const score = calculateScore();
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       {!isComplete ? (
-        <Card>
+        <Card className="bg-gray-800 border-gray-700 text-white">
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">Quiz: {topic}</CardTitle>
-            <div className="text-sm text-gray-600 dark:text-gray-400 pt-2">
+            <div className="text-sm text-gray-400 pt-2">
               Question {currentQuestion + 1} of {questions.length}
             </div>
           </CardHeader>
@@ -241,7 +251,7 @@ export default function QuizComponentInner({
             <Button
               onClick={() => currentQuestion < questions.length - 1 ? setCurrentQuestion(currentQuestion + 1) : handleFinish()}
               disabled={userAnswers[currentQuestion] === undefined || isSaving}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto btn-gradient font-bold"
             >
               {isSaving ? 'Saving...' : (currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz')}
             </Button>
@@ -250,31 +260,40 @@ export default function QuizComponentInner({
       ) : (
         <div>
           {showSummary ? (
-            <Card>
+            <Card className="bg-gray-800 border-gray-700 text-white">
               <CardHeader><CardTitle>Quiz Summary</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                {questions.map((q, index) => (
-                  <Alert key={index} variant={String(userAnswers[index]).toLowerCase() === String(q.answer).toLowerCase() ? 'default' : 'destructive'}>
-                    <AlertTitle>{q.question}</AlertTitle>
-                    <AlertDescription>
-                      <p>Your answer: {String(userAnswers[index] ?? 'Not answered')}</p>
-                      <p>Correct answer: {String(q.answer)}</p>
-                    </AlertDescription>
-                  </Alert>
-                ))}
+                {questions.map((q, index) => {
+                  const isCorrect = String(userAnswers[index]).toLowerCase() === String(q.answer).toLowerCase();
+                  return (
+                    <div key={index} className={`p-4 rounded-lg ${isCorrect ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
+                      <p className="font-semibold mb-2">{q.question}</p>
+                      <div className={`flex items-center gap-2 ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                        {isCorrect ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                        <p>Your answer: {String(userAnswers[index] ?? 'Not answered')}</p>
+                      </div>
+                      {!isCorrect && (
+                         <div className="flex items-center gap-2 text-green-400 mt-1">
+                           <CheckCircle className="h-4 w-4" />
+                           <p>Correct answer: {String(q.answer)}</p>
+                         </div>
+                      )}
+                    </div>
+                  )
+                })}
               </CardContent>
-              <CardFooter><Button onClick={() => setShowSummary(false)}>Back to Score</Button></CardFooter>
+              <CardFooter><Button onClick={() => setShowSummary(false)} variant="outline" className="border-gray-600 hover:bg-gray-700">Back to Score</Button></CardFooter>
             </Card>
           ) : (
-            <Card className="text-center">
+            <Card className="text-center bg-gray-800 border-gray-700 text-white">
               <CardHeader><CardTitle className="text-2xl sm:text-3xl">Quiz Complete!</CardTitle></CardHeader>
               <CardContent className="space-y-2">
-                <p className="text-xl font-semibold">Your score: {score} / {questions.length}</p>
-                <p className="text-lg text-gray-700 dark:text-gray-300">({Math.round((score / questions.length) * 100)}%)</p>
+                <p className="text-4xl font-bold">{Math.round((score / questions.length) * 100)}%</p>
+                <p className="text-lg text-gray-400">Your score: {score} / {questions.length}</p>
               </CardContent>
               <CardFooter className="flex justify-center space-x-4">
-                <Button onClick={() => router.push('/practice')}>New Quiz</Button>
-                <Button onClick={() => setShowSummary(true)}>Review Answers</Button>
+                <Button onClick={() => router.push('/practice')} className="btn-gradient font-bold">New Quiz</Button>
+                <Button onClick={() => setShowSummary(true)} variant="outline" className="border-gray-600 hover:bg-gray-700">Review Answers</Button>
               </CardFooter>
             </Card>
           )}

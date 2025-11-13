@@ -71,9 +71,11 @@ export interface PracticeSession {
 
 export interface Mistake {
     id: string;
+    type: QuizQuestion['type']; // Added type field
     question: string;
     userAnswer: string;
     correctAnswer: string;
+    options?: string[]; // Added optional options for multiple choice
     topic: string;
     createdAt: Timestamp;
     userId: string;

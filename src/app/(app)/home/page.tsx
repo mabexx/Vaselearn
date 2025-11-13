@@ -3,50 +3,35 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { BookOpen, Dumbbell, Layers, ShieldAlert, ArrowRight, Repeat, Target } from 'lucide-react';
+import { ArrowRight, Book, BrainCircuit, LayoutDashboard, Target, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, Timestamp } from 'firebase/firestore';
+import { collection, Timestamp, query, orderBy, limit } from 'firebase/firestore';
 import { PracticeSession, Mistake } from '@/lib/types';
-import { isSameDay, subDays, differenceInDays } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
+import FlippableFlashcard from '@/components/FlippableFlashcard';
+import { isSameDay } from 'date-fns';
 
+const StatCard = ({ title, value, progress, color }: { title: string; value: string | number; progress: number, color: string }) => (
+  <div>
+    <div className="flex justify-between items-center mb-1">
+      <span className="text-sm text-gray-400">{title}</span>
+      <span className="text-sm font-semibold text-white">{value}</span>
+    </div>
+    <Progress value={progress} className="h-2" indicatorClassName={color} />
+  </div>
+);
 
-const featureCards = [
-  {
-    icon: Dumbbell,
-    title: 'Adaptive Quizzes',
-    description: 'Generate quizzes on any topic. Our AI adapts to your knowledge level.',
-    href: '/practice',
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-500',
-  },
-  {
-    icon: Layers,
-    title: 'Interactive Flashcards',
-    description: 'Review your mistakes with our smart flashcard system to solidify concepts.',
-    href: '/flashcards',
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-500',
-  },
-  {
-    icon: BookOpen,
-    title: 'Smart Notes',
-    description: 'A powerful, rich-text editor to capture your thoughts and study materials.',
-    href: '/notes',
-    bgColor: 'bg-orange-50',
-    iconColor: 'text-orange-500',
-  },
-  {
-    icon: ShieldAlert,
-    title: 'Mistake Vault',
-    description: 'Every incorrect answer is saved for you to review and learn from.',
-    href: '/mistake-vault',
-    bgColor: 'bg-red-50',
-    iconColor: 'text-red-500',
-  }
-]
+const ToolCard = ({ title, href, icon }: { title: string; href: string; icon: React.ReactNode }) => (
+  <Link href={href} className="block bg-gray-800 hover:bg-gray-700 p-4 rounded-lg text-center transition-colors">
+    <div className="flex justify-center items-center mb-2">
+      {icon}
+    </div>
+    <span className="text-sm font-medium">{title}</span>
+  </Link>
+)
 
 export default function HomePage() {
   const { user, isUserLoading } = useUser();
@@ -63,146 +48,129 @@ export default function HomePage() {
   const { data: practiceSessions, isLoading: isLoadingSessions } = useCollection<PracticeSession>(practiceSessionsCollection);
   const { data: mistakes, isLoading: isLoadingMistakes } = useCollection<Mistake>(mistakesCollection);
 
-  const quickStats = useMemo(() => {
-    const now = new Date();
+  const { quickStats, recentMistakes } = useMemo(() => {
     const defaultStats = {
-        streak: 0,
-        mistakesToReview: 0,
+        completionRate: 0,
+        averageScore: 0,
+        studyStreak: 0,
     };
 
-    if (!practiceSessions) {
-      return defaultStats;
+    if (!practiceSessions || practiceSessions.length === 0) {
+      return { quickStats: defaultStats, recentMistakes: [] };
     }
 
-    const sortedSessions = [...practiceSessions].sort((a, b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis());
-    const practiceDays = new Set<string>();
-    sortedSessions.forEach(session => {
-        const sessionDate = (session.createdAt as Timestamp).toDate();
-        practiceDays.add(sessionDate.toISOString().split('T')[0]);
-    });
+    const totalSessions = practiceSessions.length;
+    const totalScore = practiceSessions.reduce((acc, session) => acc + session.score, 0);
+    const averageScore = Math.round(totalScore / totalSessions);
+    const completionRate = averageScore;
 
-    let currentStreak = 0;
-    if (practiceDays.size > 0) {
-        const uniqueDays = Array.from(practiceDays).map(d => new Date(d)).sort((a,b) => b.getTime() - a.getTime());
-        const todayOrYesterday = isSameDay(uniqueDays[0], now) || isSameDay(uniqueDays[0], subDays(now, 1));
-        if (todayOrYesterday) {
-            currentStreak = 1;
-            for(let i=0; i < uniqueDays.length - 1; i++) {
-                const diff = differenceInDays(uniqueDays[i], uniqueDays[i+1]);
-                if (diff === 1) {
-                    currentStreak++;
-                } else if (diff > 1) {
-                    break;
-                }
+    const sortedSessions = [...practiceSessions].sort((a, b) => (b.createdAt as Timestamp).toMillis() - (a.createdAt as Timestamp).toMillis());
+    let streak = 0;
+    if (sortedSessions.length > 0) {
+        streak = 1;
+        let lastDate = (sortedSessions[0].createdAt as Timestamp).toDate();
+        for (let i = 1; i < sortedSessions.length; i++) {
+            const currentDate = (sortedSessions[i].createdAt as Timestamp).toDate();
+            const nextDay = new Date(lastDate);
+            nextDay.setDate(nextDay.getDate() - 1);
+            if (isSameDay(currentDate, nextDay)) {
+                streak++;
+                lastDate = currentDate;
+            } else if (!isSameDay(currentDate, lastDate)) {
+                break;
             }
         }
     }
-    
-    return {
-      streak: currentStreak,
-      mistakesToReview: mistakes?.length || 0,
-    };
 
+    const sortedMistakes = !mistakes ? [] : [...mistakes].sort((a,b) => b.createdAt.seconds - a.createdAt.seconds);
+
+    return {
+      quickStats: {
+        completionRate,
+        averageScore,
+        studyStreak: streak,
+      },
+      recentMistakes: sortedMistakes.slice(0, 3)
+    };
   }, [practiceSessions, mistakes]);
 
   const isLoading = isUserLoading || isLoadingSessions || isLoadingMistakes;
 
   if (isLoading) {
     return (
-      <div className="flex w-full flex-col gap-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 p-8 rounded-xl bg-card border flex flex-col justify-center">
-            <Skeleton className="h-12 w-3/4 mb-4" />
-            <Skeleton className="h-8 w-1/2" />
-          </div>
-          <Card className="flex flex-col justify-center">
-            <CardHeader>
-              <CardTitle>Quick Stats</CardTitle>
-              <CardDescription>Your immediate progress at a glance.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Skeleton className="h-10 w-3/4" />
-              <Skeleton className="h-10 w-1/2" />
-            </CardContent>
-          </Card>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-1/3" />
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-32 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex w-full flex-col gap-8">
-       {/* Hero Section */}
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 p-8 rounded-xl bg-card border flex flex-col justify-center">
-                <h1 className="text-4xl md:text-5xl font-bold">
-                Welcome back, {user?.displayName || 'Student'}!
-                </h1>
-                <div className="mt-8 flex flex-wrap gap-4">
-                <Button asChild size="lg">
-                    <Link href="/dashboard">View Dashboard</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline">
-                    <Link href="/practice">Start a New Quiz <ArrowRight className="ml-2 h-5 w-5" /></Link>
-                </Button>
-                </div>
-            </div>
-            <Card className="flex flex-col justify-center">
-                <CardHeader>
-                    <CardTitle>Quick Stats</CardTitle>
-                    <CardDescription>Your immediate progress at a glance.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <>
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/50">
-                            <Repeat className="h-6 w-6 text-indigo-500" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{quickStats.streak} Day{quickStats.streak !== 1 && 's'}</p>
-                            <p className="text-sm text-muted-foreground">Current study streak</p>
-                        </div>
-                    </div>
-                     <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/50">
-                            <Target className="h-6 w-6 text-amber-600" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{quickStats.mistakesToReview}</p>
-                            <p className="text-sm text-muted-foreground">Mistakes to review</p>
-                        </div>
-                    </div>
-                    </>
-                </CardContent>
-            </Card>
-       </div>
-      
-       {/* Features Grid */}
-      <div className="mt-4">
-        <h2 className="text-3xl font-semibold mb-6">Explore Your Toolkit</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {featureCards.map((feature, index) => (
-            <Card key={index} className="flex flex-col hover:shadow-lg transition-shadow">
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-full ${feature.bgColor} dark:bg-zinc-800`}>
-                             <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
-                        </div>
-                        <CardTitle>{feature.title}</CardTitle>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <CardDescription>{feature.description}</CardDescription>
-                </CardContent>
-                <CardContent>
-                   <Button asChild variant="secondary" className="w-full">
-                        <Link href={feature.href}>Go to {feature.title} <ArrowRight className="ml-auto h-4 w-4" /></Link>
-                    </Button>
-                </CardContent>
-            </Card>
-          ))}
-        </div>
+    <div className="space-y-8 text-white">
+      <div className="p-6 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 flex justify-between items-center">
+          <div>
+              <h2 className="text-2xl font-bold">Ready for a Challenge?</h2>
+              <p className="mt-1 text-purple-200">Select a subject and difficulty to start a new quiz.</p>
+          </div>
+          <Button asChild size="lg" className="bg-white text-purple-700 hover:bg-gray-200 font-bold">
+              <Link href="/practice">Start Quiz</Link>
+          </Button>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Card className="bg-gray-900 border-gray-700 col-span-1">
+              <CardHeader>
+                  <CardTitle>Quick Stats</CardTitle>
+                  <CardDescription>A visual overview of your recent performance.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <StatCard title="Completion Rate" value={`${quickStats.completionRate}%`} progress={quickStats.completionRate} color="bg-green-500" />
+                <StatCard title="Average Score" value={`${quickStats.averageScore}%`} progress={quickStats.averageScore} color="bg-purple-500" />
+                <StatCard title="Study Streak" value={`${quickStats.studyStreak} Days`} progress={(quickStats.studyStreak / 7) * 100} color="bg-yellow-500" />
+              </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-700 col-span-1 lg:col-span-2">
+              <CardHeader>
+                  <CardTitle>Flashcards</CardTitle>
+                  <CardDescription>A quick review of your most recent mistakes. Click a card to flip it.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recentMistakes.length > 0 ? recentMistakes.map((mistake) => (
+                  <FlippableFlashcard
+                    key={mistake.id}
+                    question={mistake.question}
+                    answer={mistake.correctAnswer}
+                  />
+                )) : (
+                  <p className="text-gray-400 col-span-3 text-center py-10">No mistakes to review yet!</p>
+                )}
+              </CardContent>
+              <div className="p-6 text-center">
+                <Button asChild variant="outline" className="border-gray-600 hover:bg-gray-700">
+                    <Link href="/flashcards">Go to Flashcards</Link>
+                </Button>
+              </div>
+          </Card>
+      </div>
+       <Card className="bg-gray-900 border-gray-700 col-span-1">
+          <CardHeader>
+              <CardTitle>Explore Your Toolkit</CardTitle>
+              <CardDescription>Discover tools designed to boost your learning.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <ToolCard title="Dashboard" href="/dashboard" icon={<LayoutDashboard className="h-6 w-6 text-blue-400" />} />
+              <ToolCard title="Practice" href="/practice" icon={<BrainCircuit className="h-6 w-6 text-green-400" />} />
+              <ToolCard title="Goals" href="/goals" icon={<Target className="h-6 w-6 text-red-400" />} />
+              <ToolCard title="Mistake Vault" href="/mistake-vault" icon={<ShieldAlert className="h-6 w-6 text-yellow-400" />} />
+          </CardContent>
+      </Card>
     </div>
   );
 }

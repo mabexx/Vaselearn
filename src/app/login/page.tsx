@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -12,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +25,6 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const handleLogin = async (e: React.FormEvent) => {
@@ -43,22 +42,15 @@ export default function LoginPage() {
     // Using non-blocking sign-in
     initiateEmailSignIn(auth, email, password);
     
-    // We can't immediately know if it succeeded or failed here.
     // Auth state is handled by the onAuthStateChanged listener in FirebaseProvider.
-    // For simplicity, we'll just navigate. Error handling will be global.
     router.push('/home');
-
-    // In a real app, you might not want to set loading to false immediately,
-    // but rely on a global state updated by the auth listener.
-    // For this prototype, we'll keep it simple.
-    // setIsLoading(false);
   };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center">
-            <h1 className="text-3xl font-bold">Welcome Back to Vaselearn</h1>
+            <h1 className="text-3xl font-bold">Welcome Back to vasics</h1>
             <p className="text-muted-foreground">Sign in to continue your learning journey</p>
         </div>
         <Card>
@@ -93,34 +85,16 @@ export default function LoginPage() {
                     disabled={isLoading}
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                    id="terms"
-                    checked={agreedToTerms}
-                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-                />
-                <Label htmlFor="terms" className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    I agree to the{' '}
-                    <Link href="/terms" className="underline hover:text-primary">
-                    Terms of Service
-                    </Link>{' '}
-                    and{' '}
-                    <Link href="/privacy" className="underline hover:text-primary">
-                    Privacy Policy
-                    </Link>
-                    .
-                </Label>
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading || !agreedToTerms}>
+              <Button type="submit" className="w-full btn-gradient font-bold" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{' '}
-              <a href="http://t.me/vasickid" target="_blank" rel="noopener noreferrer" className="underline">
-                Contact us via Telegram @vasickid
-              </a>
+              <Link href="/signup" className="underline">
+                Sign Up
+              </Link>
             </div>
           </CardContent>
         </Card>
