@@ -96,15 +96,17 @@ export default function FlashcardsPage() {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="absolute left-[-50px] top-1/2 -translate-y-1/2 fill-white">
-          <ArrowLeft className="h-6 w-6" />
-        </CarouselPrevious>
-        <CarouselNext className="absolute right-[-50px] top-1/2 -translate-y-1/2 fill-white">
-          <ArrowRight className="h-6 w-6" />
-        </CarouselNext>
       </Carousel>
-      <div className="py-2 text-center text-sm text-muted-foreground">
-        Card {current} of {count}
+      <div className="flex items-center justify-center w-full space-x-4 mt-4">
+        <CarouselPrevious className="relative left-0 top-0 -translate-y-0 fill-white rounded-md border bg-card text-card-foreground shadow-sm hover:bg-card/80 p-2">
+            <ArrowLeft className="h-6 w-6" />
+        </CarouselPrevious>
+        <div className="py-2 text-center text-sm text-muted-foreground">
+            Card {current} of {count}
+        </div>
+        <CarouselNext className="relative right-0 top-0 -translate-y-0 fill-white rounded-md border bg-card text-card-foreground shadow-sm hover:bg-card/80 p-2">
+            <ArrowRight className="h-6 w-6" />
+        </CarouselNext>
       </div>
     </div>
   );
